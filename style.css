@@ -1,0 +1,42 @@
+.navbar .container-fluid {
+    display: flex;
+    align-items: center;
+    margin: 10px;
+    gap: 10px;
+}
+
+.navbar .form-control.f-a {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+}
+
+.navbar .btn {
+    flex: 0 0 auto;
+}
+
+.container-gol,
+.cards {
+    display: flex;
+    flex-direction: row;
+}
+
+.cards {
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+}
+
+.card-body{
+    background-color: black;
+}
+.card-body .card-title,
+.card-text {
+    color: white;
+    font-weight: bold;
+}
