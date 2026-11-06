@@ -1,3 +1,30 @@
+:root {
+    --steam-background: #1b2838;
+    --steam-header: #171a21;
+    --steam-card: #16202d;
+    --steam-border: #2a475e;
+    --steam-accent: #66c0f4;
+}
+
+html,
+body {
+    min-height: 100%;
+    background-color: var(--steam-background);
+}
+
+.navbar.bg-dark {
+    background-color: var(--steam-header) !important;
+}
+
+header {
+    border-bottom: 2px solid var(--steam-accent);
+}
+
+#va {
+    font-style: italic;
+    font-weight: bold;
+}
+
 .navbar .container-fluid {
     display: flex;
     align-items: center;
@@ -19,24 +46,114 @@
 .cards {
     display: flex;
     flex-direction: row;
+    background-color: var(--steam-background);
+    justify-content: center;
+    border-radius: 12px;
 }
 
 .cards {
     gap: 16px;
     flex-wrap: wrap;
+    padding: 15px;
 }
 
 .card {
     display: flex;
     flex-direction: column;
-    width: 240px;
+    width: 280px;
+    height:auto;
+    background-color: var(--steam-card);
+    border: 2px solid var(--steam-border);
+    border-radius: 12px;
 }
 
-.card-body{
-    background-color: black;
+.card-body {
+    background-color: var(--steam-card);
+    border-radius: 12px;
 }
+
 .card-body .card-title,
 .card-text {
     color: white;
     font-weight: bold;
+}
+
+.game-img {
+    box-sizing: border-box;
+    flex: 0 1 68%;
+    min-width: 0;
+    width: 68%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    padding: 7px;
+    object-fit: cover;
+}
+
+.games {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(875px, calc(100% - 30px));
+  margin: 20px auto;
+  padding: 16px 48px;
+  border: 2px solid var(--steam-border);
+  border-radius: 12px;
+}
+
+.game-arrow-prev,
+.game-arrow-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  line-height: 1;
+}
+
+.game-arrow-prev:hover,
+.game-arrow-next:hover {
+  color: var(--steam-accent) !important;
+}
+
+.game-arrow-prev { left: 6px; }
+.game-arrow-next { right: 6px; }
+
+.slide {
+    width: 100%;
+    min-width: 0;
+}
+
+.game {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    gap: 12px;
+}
+
+.game:not(.active) {
+    display: none;
+}
+
+.game-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 0;
+    color: white;
+}
+
+.w2 {
+    color: white;
+    padding-left: 275px;
+    font-size: 25px;
+}
+
+.price {
+    display: inline-flex;
+    align-self: flex-start;
+    border: 2px solid var(--steam-border);
+    border-radius: 7.5px;
+    text-align: center;
+    padding: 2px 8px;
+    white-space: nowrap;
 }

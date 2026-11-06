@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="style.css">
     <title>Steam</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-light bg-dark">
             <div class="container-fluid">
-                <a class="navbar-brand text-white" href="#">Steam</a>
+                <a class="navbar-brand text-white" href="#" id="va">Steam</a>
                 <input class="form-control f-a" type="search" placeholder="Пошук" aria-label="Search">
                 <button class="btn btn-outline-light" type="submit">Пошук</button>
                 <button class="btn btn-outline-light">Розпродаж</button>
@@ -20,7 +20,58 @@
             </div>
         </nav>
     </header>
-    
+
+    <div class="container-reccomend">
+      <h2 class="w2">Відібране і рекомендоване</h2>
+      <div class="games">
+          <button class="game-arrow-prev btn btn-link text-white text-decoration-none fs-1 p-0" type="button" aria-label="Попередня гра">&lsaquo;</button>
+          <div class="slide">
+
+          <div class="game active" id="g1">
+              <img class="game-img" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3274580/cac0447ebb1e54c6763b62bcda43092088744707/ss_cac0447ebb1e54c6763b62bcda43092088744707.1920x1080.jpg?t=1793873126" alt="Game 1">
+              <div class="game-info">
+                <h3 class="game-title">Pax Romana</h3>
+                <p class="game-description">Культова серія містобудівних ігор повертається в її найамбітнішому втіленні – Anno 117: Pax Romana.</p>
+              
+                <div class="price">
+                  <span class="price-value">1719₴</span>
+                </div>
+                
+              </div>
+          </div>
+
+          <div class="game" id="g2">
+              <img class="game-img" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/5160800/37d94c74a4c04e6050895f30bcd8ef518c6faa1e/ss_37d94c74a4c04e6050895f30bcd8ef518c6faa1e.1920x1080.jpg?t=1793980111" alt="Game 2">
+              <div class="game-info">
+                <h3 class="game-title">Find The Needle</h3>
+                <p class="game-description">У тебе є лопата і стіг сіна, в якому близько шести мільйонів стеблин. Десь усередині є голка. Відкопай її руками, продай сіно, а гроші вклади в конвеєри та машини, доки копати самому вже не доведеться.</p>
+              
+                <div class="price">
+                  <span class="price-value">360₴</span>
+                </div>
+
+              </div>
+          </div>
+
+          <div class="game" id="g3">
+              <img class="game-img" src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/4ef95eed5fcd98c576bf13e024bc6c845b622132/ss_4ef95eed5fcd98c576bf13e024bc6c845b622132.1920x1080.jpg?t=1793054556" alt="Game 3">
+              <div class="game-info">
+                <h3 class="game-title">Counter-Strike 2</h3>
+                <p class="game-description">Упродовж більш ніж двох десятиліть Counter-Strike пропонував елітний змагальний досвід, сформований мільйонами гравців з усього світу. І тепер починається новий розділ в історії CS: Counter-Strike 2.</p>
+                
+                <div class="price">
+                  <span class="price-value">Безкоштовно</span>
+                </div>
+                
+              </div>
+          </div>
+
+        </div>
+        <button class="game-arrow-next btn btn-link text-white text-decoration-none fs-1 p-0" type="button" aria-label="Наступна гра">&rsaquo;</button>
+      </div>
+    </div>
+
+    <h2 class="w2">Каталог ігор</h2>
     <div class="container-gol">
       <div class="cards">
         <div class="card" id="1">
@@ -35,11 +86,24 @@
           <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1222680/header.jpg?t=1777414224" class="card-img-top" alt="...">
           <div class="card-body">
             <h5 class="card-title">Need for Speed Heat</h5>
-            <p class="card-text">Відкрийте для себе світ футболу з новими жіночими командами та ігровими режимами.</p>
+            <p class="card-text">Відкрийте для себе світ гонок з новими маршрутами та ігровими режимами.</p>
+            <a href="#" class="btn btn-primary">Детальніше</a>
+          </div>
+        </div>
+        <div class="card" id="3">
+          <img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/header.jpg?t=1757348372" class="card-img-top" alt="...">
+          <div class="card-body">
+            <h5 class="card-title">Team Fortress 2</h5>
+            <p class="card-text">Відкрийте для себе світ шутеру зі своїми друзями, де є багато різних класів та режимів.</p>
             <a href="#" class="btn btn-primary">Детальніше</a>
           </div>
         </div>
       </div>
     </div>
+
+    <footer class="bg-dark text-white text-center py-3">
+      <p>&copy; 2026 A and I studio</p>
+    </footer>
+  <script src="script.js"></script>
   </body>
 </html>
