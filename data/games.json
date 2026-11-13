@@ -1,0 +1,488 @@
+[
+  {
+    "id": "0a3c8634-8660-4126-b344-69805a9f00c0",
+    "steamAppId": "3274580",
+    "title": "Anno 117: Pax Romana",
+    "description": "Містобудівна стратегія про управління римською провінцією: розбудовуй поселення, торгуй і ухвалюй рішення, що впливають на мешканців.",
+    "release": "12 листопада 2025",
+    "developer": "Ubisoft Mainz",
+    "publisher": "Ubisoft",
+    "price": 1719,
+    "salePrice": 1031,
+    "discountPercent": 40,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3274580/038d88b3917b4f1c6919c8120adabf86a6702085/header_alt_assets_5.jpg?t=1793873126",
+    "featured": true,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i7-7700 або AMD Ryzen 5 1600",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1660 6 ГБ або AMD RX 5600 XT 6 ГБ",
+      "DirectX 12; 117 ГБ вільного місця; потрібен SSD"
+    ],
+    "recommended": [
+      "Windows 11, 64-bit",
+      "Intel Core i5-9600K або AMD Ryzen 5 3600",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA RTX 2070 8 ГБ або AMD RX 6600 XT 8 ГБ",
+      "DirectX 12; 117 ГБ вільного місця; потрібен SSD"
+    ]
+  },
+  {
+    "id": "a675d42c-f67c-411e-ba98-1357081d162f",
+    "steamAppId": "5160800",
+    "title": "Find The Needle",
+    "description": "Шукай голку у величезному стозі сіна, продавай зібране й поступово автоматизуй роботу конвеєрами та машинами.",
+    "release": "6 листопада 2026",
+    "developer": "Needless Games",
+    "publisher": "Needless Games",
+    "price": 360,
+    "salePrice": 306,
+    "discountPercent": 15,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/5160800/9ad39ef753543a194a7546ee8a17dc4b821cd021/header.jpg?t=1793980111",
+    "featured": true,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-8400 або AMD Ryzen 5 2600",
+      "8 ГБ оперативної пам’яті",
+      "GTX 1050 Ti або RX 570; відеокарта з Vulkan 1.3 і 4 ГБ VRAM",
+      "DirectX 12; 3 ГБ вільного місця; вбудована графіка не підтримується"
+    ],
+    "recommended": [
+      "Windows 11, 64-bit",
+      "Intel Core i5-12400 або AMD Ryzen 5 5600",
+      "16 ГБ оперативної пам’яті",
+      "GTX 1660 Super або RTX 2060 6 ГБ",
+      "DirectX 12; 3 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "d8c70fe2-f11d-47cf-a134-41d092947587",
+    "steamAppId": "730",
+    "title": "Counter-Strike 2",
+    "description": "Безкоштовний командний тактичний шутер із змагальними матчами, класичними режимами та оновленою графікою на рушії Source 2.",
+    "release": "27 вересня 2023",
+    "developer": "Valve",
+    "publisher": "Valve",
+    "price": 0,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/header.jpg",
+    "featured": true,
+    "minimum": [
+      "Windows 10",
+      "Intel Core i5-750 або сумісний процесор із 4 потоками",
+      "8 ГБ оперативної пам’яті",
+      "Відеокарта з 1 ГБ пам’яті, DirectX 11 і Shader Model 5.0",
+      "85 ГБ вільного місця"
+    ],
+    "recommended": ["Steam не вказує окремих рекомендованих характеристик."]
+  },
+  {
+    "id": "71882725-aeec-4c37-a914-48d257a9937a",
+    "steamAppId": "4080220",
+    "title": "EA SPORTS FC 27",
+    "description": "Футбольний симулятор із клубними та міжнародними командами, різними режимами гри й оновленою механікою матчів.",
+    "release": "24 вересня 2026",
+    "developer": "EA Canada, EA Romania",
+    "publisher": "Electronic Arts",
+    "price": 2199,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4080220/ff6a3779f1ca83aae8ad3878454f6c11008ea24d/header.jpg?t=1793610006",
+    "featured": false,
+    "minimum": [
+      "Windows 10/11, 64-bit",
+      "AMD Ryzen 5 1600 або Intel Core i5-6600K",
+      "8 ГБ оперативної пам’яті",
+      "AMD RX 570 або NVIDIA GTX 1050 Ti",
+      "DirectX 12; 100 ГБ вільного місця; рекомендовано SSD"
+    ],
+    "recommended": [
+      "Windows 10/11, 64-bit",
+      "AMD Ryzen 7 2700X або Intel Core i7-6700",
+      "12 ГБ оперативної пам’яті",
+      "AMD RX 5600 XT або NVIDIA GTX 1660",
+      "DirectX 12; 100 ГБ вільного місця; потрібен SSD"
+    ]
+  },
+  {
+    "id": "50f6144a-31da-4499-8a3e-f270d372c3ee",
+    "steamAppId": "1222680",
+    "title": "Need for Speed Heat",
+    "description": "Відкритий світ Palm City: вдень змагайся в офіційних заїздах, а вночі ризикуй у вуличних перегонах і уникай поліції.",
+    "release": "4 червня 2020",
+    "developer": "Ghost Games",
+    "publisher": "Electronic Arts",
+    "price": 1999,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1222680/header.jpg?t=1777414224",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "AMD FX-6350 або Intel Core i5-3570",
+      "8 ГБ оперативної пам’яті",
+      "AMD Radeon 7970/R9 280X або NVIDIA GTX 760",
+      "DirectX 11; 50 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 10, 64-bit",
+      "AMD Ryzen 3 1300X або Intel Core i7-4790",
+      "16 ГБ оперативної пам’яті",
+      "AMD Radeon RX 480 або NVIDIA GTX 1060",
+      "DirectX 11; 50 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "1eae2cb3-23dc-4589-9da2-c218ca8d7056",
+    "steamAppId": "440",
+    "title": "Team Fortress 2",
+    "description": "Командний мережевий шутер із дев’ятьма класами персонажів, різними ролями та кількома стилями командної гри.",
+    "release": "10 жовтня 2007",
+    "developer": "Valve",
+    "publisher": "Valve",
+    "price": 0,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/440/header.jpg?t=1757348372",
+    "featured": false,
+    "minimum": [
+      "Windows 7, Vista або XP",
+      "Процесор 1,7 ГГц або швидший",
+      "512 МБ оперативної пам’яті",
+      "DirectX 8.1; широкосмугове підключення до інтернету",
+      "15 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 7",
+      "Pentium 4 3,0 ГГц або швидший",
+      "1 ГБ оперативної пам’яті",
+      "DirectX 9.0c; широкосмугове підключення до інтернету",
+      "15 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "63ca354f-fdd3-4273-8cd3-0f1770fbe5f3",
+    "steamAppId": "1091500",
+    "title": "Cyberpunk 2077",
+    "description": "Рольова гра у відкритому світі Найт-Сіті. Грай за найманця V, виконуй замовлення, досліджуй місто й налаштовуй персонажа.",
+    "release": "10 грудня 2020",
+    "developer": "CD PROJEKT RED",
+    "publisher": "CD PROJEKT RED",
+    "price": 1399,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/48a93d6445a67520ea49833c93dae8f2e68fc540/header_alt_assets_9.jpg?t=1794474878",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i7-6700 або AMD Ryzen 5 1600",
+      "12 ГБ оперативної пам’яті",
+      "GTX 1060 6 ГБ, Radeon RX 580 8 ГБ або Intel Arc A380",
+      "DirectX 12; SSD; 70 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 10, 64-bit",
+      "Intel Core i7-12700 або AMD Ryzen 7 7800X3D",
+      "16 ГБ оперативної пам’яті",
+      "RTX 2060 SUPER, Radeon RX 5700 XT або Intel Arc A770",
+      "DirectX 12; SSD; 70 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "07853454-2220-4b36-9226-6b273c0d15d4",
+    "steamAppId": "413150",
+    "title": "Stardew Valley",
+    "description": "Фермерська рольова гра: відновлюй ферму, вирощуй урожай, знайомся з мешканцями долини й досліджуй навколишній світ.",
+    "release": "26 лютого 2016",
+    "developer": "ConcernedApe",
+    "publisher": "ConcernedApe",
+    "price": 229,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg?t=1786554168",
+    "featured": false,
+    "minimum": [
+      "Windows Vista або новіша",
+      "Процесор 2 ГГц",
+      "2 ГБ оперативної пам’яті",
+      "Відеокарта з 256 МБ пам’яті та підтримкою Shader Model 3.0",
+      "DirectX 10; 500 МБ вільного місця"
+    ],
+    "recommended": ["Steam не вказує окремих рекомендованих характеристик."]
+  },
+  {
+    "id": "7b398ced-4394-42c9-b000-207971c5c803",
+    "steamAppId": "620",
+    "title": "Portal 2",
+    "description": "Головоломка від першої особи: використовуй портальну гармату, щоб проходити просторові випробування самостійно або в кооперативі.",
+    "release": "18 квітня 2011",
+    "developer": "Valve",
+    "publisher": "Valve",
+    "price": 240,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/620/faffc0f560786e2f05104a8d2fac837c6969bf13/header.jpg?t=1790187113",
+    "featured": false,
+    "minimum": [
+      "Windows 7, Vista або XP",
+      "3,0 ГГц Pentium 4, двоядерний процесор 2,0 ГГц або AMD64X2",
+      "2 ГБ оперативної пам’яті",
+      "Відеокарта від 128 МБ із підтримкою Pixel Shader 2.0b",
+      "DirectX 9.0c; 8 ГБ вільного місця"
+    ],
+    "recommended": ["Steam не вказує окремих рекомендованих характеристик."]
+  },
+  {
+    "id": "2fffae13-d44d-4b32-857a-aa83cdc75b84",
+    "steamAppId": "227300",
+    "title": "Euro Truck Simulator 2",
+    "description": "Працюй далекобійником у Європі, доставляй вантажі між містами, розвивай власну компанію й досліджуй дороги десятків країн.",
+    "release": "12 жовтня 2012",
+    "developer": "SCS Software",
+    "publisher": "SCS Software",
+    "price": 400,
+    "salePrice": 100,
+    "discountPercent": 75,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/227300/9a81dc3126c56637297b654f9dcac057cfd79b77/header.jpg?t=1794502925",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-6400 або AMD Ryzen 3 1200",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 660, AMD RX 460 або Intel HD 630 з 2 ГБ VRAM",
+      "25 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-9600 або AMD Ryzen 5 3600",
+      "12 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1660 або AMD RX 590",
+      "25 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "636056df-4feb-42b0-94f0-bc597477e989",
+    "steamAppId": "270880",
+    "title": "American Truck Simulator",
+    "description": "Керуй американськими вантажівками, доставляй вантажі через Каліфорнію, Неваду й Аризону та розбудовуй власний бізнес.",
+    "release": "2 лютого 2016",
+    "developer": "SCS Software",
+    "publisher": "SCS Software",
+    "price": 400,
+    "salePrice": 100,
+    "discountPercent": 75,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/270880/a80e5a18363259677ca96c2a39503ea595d2a45f/header.jpg?t=1794418935",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-6400 або AMD Ryzen 3 1200",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 660, AMD RX 460 або Intel HD 630 з 2 ГБ VRAM",
+      "25 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-9600 або AMD Ryzen 5 3600",
+      "12 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1660 або AMD RX 590",
+      "25 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "5d354028-8a97-47cb-9141-7746726fcd08",
+    "steamAppId": "1551360",
+    "title": "Forza Horizon 5",
+    "description": "Відкритий світ Мексики, сотні автомобілів, перегони й дослідницькі заїзди у масштабній гоночній пригоді.",
+    "release": "9 листопада 2021",
+    "developer": "Playground Games",
+    "publisher": "Xbox Game Studios",
+    "price": 1199,
+    "salePrice": null,
+    "discountPercent": 0,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/header.jpg?t=1788546569",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-4460 або AMD Ryzen 3 1200",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 970, AMD RX 470 або Intel Arc A380",
+      "DirectX 12; 110 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-8400 або AMD Ryzen 5 1500X",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1070, AMD RX 590 або Intel Arc A750",
+      "DirectX 12; 110 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "b3e67f45-0f03-40cb-a48c-2182809be5be",
+    "steamAppId": "489830",
+    "title": "The Elder Scrolls V: Skyrim Special Edition",
+    "description": "Досліджуй фентезійний світ Скайриму, виконуй завдання, розвивай героя та обирай власний шлях у великій рольовій пригоді.",
+    "release": "27 жовтня 2016",
+    "developer": "Bethesda Game Studios",
+    "publisher": "Bethesda Softworks",
+    "price": 649,
+    "salePrice": 129,
+    "discountPercent": 80,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/489830/header.jpg?t=1786648247",
+    "featured": false,
+    "minimum": [
+      "Windows 7/8.1/10, 64-bit",
+      "Intel i5-750 або AMD Phenom II X4-945",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 470 1 ГБ або AMD HD 7870 2 ГБ",
+      "12 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 7/8.1/10, 64-bit",
+      "Intel i5-2400 або AMD FX-8320",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 780 3 ГБ або AMD R9 290 4 ГБ",
+      "12 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "2f50d325-10a0-460a-940b-18fd06531efe",
+    "steamAppId": "2536520",
+    "title": "Diablo II: Resurrected – Infernal Edition",
+    "description": "Оновлена темна фентезійна рольова гра з новим класом, додатковим контентом і битвами проти демонічних армій.",
+    "release": "11 лютого 2026",
+    "developer": "Blizzard Entertainment",
+    "publisher": "Blizzard Entertainment",
+    "price": 1699,
+    "salePrice": 1104,
+    "discountPercent": 35,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2536520/8cfd8f0d73075b10b3b58d9eccfee799baffab79/header.jpg?t=1774399170",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i3-3250 або AMD FX-4350",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 660 або AMD Radeon HD 7850",
+      "43 ГБ вільного місця; широкосмуговий інтернет"
+    ],
+    "recommended": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-9600K або AMD Ryzen 5 2600",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1060 або AMD Radeon RX 5500 XT",
+      "43 ГБ вільного місця; широкосмуговий інтернет"
+    ]
+  },
+  {
+    "id": "ccd7f9eb-dd48-4cd4-9c76-c7fa3a514e8b",
+    "steamAppId": "5378110",
+    "title": "One More Lawn",
+    "description": "Коси газони на старій газонокосарці самостійно або в кооперативі, відкривай нові локації та залишай рівні смуги.",
+    "release": "12 листопада 2026",
+    "developer": "Superdou",
+    "publisher": "Superdou",
+    "price": 170,
+    "salePrice": 119,
+    "discountPercent": 30,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/5378110/9ac5251c1c2fd82c9b6fc5205e71dc94f65ec583/header.jpg?t=1794516748",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i5-4460 або AMD Ryzen 3 1200",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 960 або AMD RX 460 з 2 ГБ VRAM",
+      "DirectX 11; 2 ГБ вільного місця; потрібен інтернет для кооперативу"
+    ],
+    "recommended": [
+      "Windows 10/11, 64-bit",
+      "Intel Core i5-8400 або AMD Ryzen 5 2600",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1060 6 ГБ або AMD RX 580",
+      "DirectX 11; 2 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "1140f14c-b210-4bb4-ace6-2d647a7b9912",
+    "steamAppId": "5185890",
+    "title": "Zombies Aren't Real",
+    "description": "Стратегія оборони від орд зомбі: розміщуй військові підрозділи, стримуй зараження та рятуй цивільних.",
+    "release": "13 листопада 2026",
+    "developer": "Jogamedev",
+    "publisher": "Jogamedev",
+    "price": 240,
+    "salePrice": 216,
+    "discountPercent": 10,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/5185890/cd54755b9d15a2cad33471464fb630d6a5363ff0/header.jpg?t=1794584628",
+    "featured": false,
+    "minimum": [
+      "Windows 10/11, 64-bit",
+      "4-ядерний CPU 3,0 ГГц (Intel Core i5-6500 або AMD Ryzen 3 1200)",
+      "8 ГБ оперативної пам’яті",
+      "Відеокарта DirectX 11 з 2 ГБ VRAM",
+      "DirectX 11; 2 ГБ вільного місця"
+    ],
+    "recommended": [
+      "Windows 10/11, 64-bit",
+      "6-ядерний CPU 3,5 ГГц (Intel Core i5-10400 або AMD Ryzen 5 3600)",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1050 Ti або AMD RX 570",
+      "DirectX 11; 2 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "bdc6d84d-b6ce-4162-b3c3-1667a5878feb",
+    "steamAppId": "4459590",
+    "title": "Slotbound",
+    "description": "Рогалик-автобатлер: крути слот-машину, викликай бійців і змінюй шанси предметами, щоб пережити хвилі ворогів.",
+    "release": "12 листопада 2026",
+    "developer": "Optima Arch",
+    "publisher": "Optima Arch",
+    "price": 240,
+    "salePrice": 216,
+    "discountPercent": 10,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4459590/560f439f789caa08634fbf9ff462c73bf06fbf41/header.jpg?t=1794535601",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit",
+      "Intel Core i3-6100 або AMD Ryzen 3 1200",
+      "4 ГБ оперативної пам’яті",
+      "NVIDIA GTX 750 Ti або AMD Radeon HD 7850",
+      "DirectX 11; 2 ГБ вільного місця; потрібен інтернет для таблиць лідерів"
+    ],
+    "recommended": [
+      "Windows 10/11, 64-bit",
+      "Intel Core i5-8400 або AMD Ryzen 5 2600",
+      "8 ГБ оперативної пам’яті",
+      "NVIDIA GTX 1060 або AMD RX 580",
+      "DirectX 12; 2 ГБ вільного місця"
+    ]
+  },
+  {
+    "id": "cb09097e-338b-47bb-860a-7c94b843f0c1",
+    "steamAppId": "4493130",
+    "title": "Ski-E-O! Ski Resort Tycoon",
+    "description": "Розбудовуй гірськолижний курорт мрії: прокладай траси, став підйомники й облаштовуй готелі та заклади для гостей.",
+    "release": "12 листопада 2026",
+    "developer": "Falling Damage Games",
+    "publisher": "Falling Damage Games",
+    "price": 470,
+    "salePrice": 423,
+    "discountPercent": 10,
+    "image": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4493130/0188d1a232e5ab2c906e136031e52da8486cbe77/header.jpg?t=1794506830",
+    "featured": false,
+    "minimum": [
+      "Windows 10, 64-bit (версія 2004 або новіша)",
+      "Intel Core i5-8400 або AMD Ryzen 5 2600",
+      "16 ГБ оперативної пам’яті",
+      "NVIDIA RTX 2060/GTX 1660, AMD RX 6600 або Intel Arc A750",
+      "DirectX 12; 10 ГБ вільного місця; рекомендовано SSD"
+    ],
+    "recommended": [
+      "Windows 11, 64-bit",
+      "Intel Core i5-12400 або AMD Ryzen 5 5600X",
+      "32 ГБ оперативної пам’яті",
+      "NVIDIA RTX 3060 або AMD RX 6600/6650 XT",
+      "DirectX 12; 10 ГБ вільного місця; рекомендовано SSD"
+    ]
+  }
+]

@@ -2,8 +2,10 @@
     --steam-background: #1b2838;
     --steam-header: #171a21;
     --steam-card: #16202d;
+    --steam-btn: rgb(43, 82, 128);
     --steam-border: #2a475e;
     --steam-accent: #66c0f4;
+    --steam-text: #ffffff;
 }
 
 html,
@@ -32,6 +34,11 @@ header {
     gap: 10px;
 }
 
+.loged {
+    align-items: center;
+    gap: 10px;
+}
+
 .navbar .form-control.f-a {
     flex: 1 1 auto;
     width: auto;
@@ -40,6 +47,192 @@ header {
 
 .navbar .btn {
     flex: 0 0 auto;
+}
+
+#cart-button {
+    display: none;
+}
+
+body.is-logged-in #cart-button {
+    display: inline-block;
+}
+
+.sale-section {
+    width: min(875px, calc(100% - 30px));
+    margin: 24px auto 36px;
+}
+
+.sale-title {
+    margin: 0 0 14px;
+    color: var(--steam-text);
+    font-size: 25px;
+    text-align: center;
+}
+
+.sale-carousel {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    align-items: center;
+    gap: 10px;
+}
+
+.sale-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.sale-arrow {
+    width: 38px;
+    height: 48px;
+    color: var(--steam-text);
+    background: var(--steam-card);
+    border: 1px solid var(--steam-border);
+    border-radius: 6px;
+    font-size: 32px;
+    line-height: 1;
+}
+
+.sale-arrow:hover:not(:disabled) {
+    color: var(--steam-accent);
+    border-color: var(--steam-accent);
+}
+
+.sale-arrow:disabled {
+    cursor: default;
+    opacity: 0.35;
+}
+
+.sale-pagination,
+.site-message {
+    min-height: 1.25em;
+    margin: 10px 0 0;
+    color: var(--steam-text);
+    text-align: center;
+}
+
+.site-message {
+    color: var(--steam-accent);
+}
+
+.sale-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    color: var(--steam-text);
+    background: var(--steam-card);
+    border: 2px solid var(--steam-border);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.sale-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--steam-accent);
+}
+
+.sale-card:focus-visible {
+    outline: 2px solid var(--steam-accent);
+    outline-offset: 3px;
+}
+
+.sale-card > img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.sale-card-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px;
+}
+
+.sale-card-title {
+    color: var(--steam-text);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.sale-price-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sale-discount-badge {
+    padding: 7px 9px;
+    color: var(--steam-text);
+    background: var(--steam-btn);
+    border: 1px solid var(--steam-border);
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.sale-prices {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.sale-original-price {
+    color: var(--steam-text);
+    font-size: 12px;
+    opacity: 0.65;
+    text-decoration: line-through;
+}
+
+.sale-current-price {
+    color: var(--steam-text);
+    font-size: 16px;
+}
+
+.catalog-prices {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.catalog-prices del,
+.game-details-price del {
+    color: var(--steam-text);
+    font-size: 12px;
+    opacity: 0.65;
+}
+
+.catalog-prices strong {
+    color: var(--steam-text);
+    font-size: 14px;
+}
+
+.catalog-discount {
+    padding: 5px 7px;
+    color: var(--steam-text);
+    background: var(--steam-btn);
+    border: 1px solid var(--steam-border);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.catalog-price {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.catalog-empty {
+    grid-column: 1 / -1;
+    color: var(--steam-text);
+    text-align: center;
 }
 
 .container-gol,
@@ -52,15 +245,19 @@ header {
 }
 
 .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(100%, 900px);
+    box-sizing: border-box;
+    margin: 0 auto;
     gap: 16px;
-    flex-wrap: wrap;
     padding: 15px;
 }
 
 .card {
     display: flex;
     flex-direction: column;
-    width: 280px;
+    width: 100%;
     height:auto;
     background-color: var(--steam-card);
     border: 2px solid var(--steam-border);
@@ -68,8 +265,42 @@ header {
 }
 
 .card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     background-color: var(--steam-card);
     border-radius: 12px;
+}
+
+.game-card-link {
+    cursor: pointer;
+    color: inherit;
+    text-decoration: none;
+    text-align: left;
+    transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.game-card-link:hover {
+    transform: translateY(-3px);
+    border-color: var(--steam-accent);
+}
+
+.game-card-link:hover .card-title {
+    color: var(--steam-accent);
+}
+
+.game-card-link:focus-visible {
+    outline: 2px solid var(--steam-accent);
+    outline-offset: 3px;
+}
+
+.game-card-link .card-img-top {
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.game-card-link .price {
+    margin-top: auto;
 }
 
 .card-body .card-title,
@@ -127,6 +358,16 @@ header {
     align-items: center;
     min-width: 0;
     gap: 12px;
+    cursor: pointer;
+}
+
+.game:hover .game-title {
+    color: var(--steam-accent);
+}
+
+.game:focus-visible {
+    outline: 2px solid var(--steam-accent);
+    outline-offset: 4px;
 }
 
 .game:not(.active) {
@@ -144,8 +385,9 @@ header {
 
 .w2 {
     color: white;
-    padding-left: 275px;
+    padding-left: 0;
     font-size: 25px;
+    text-align: center;
 }
 
 .price {
@@ -153,7 +395,976 @@ header {
     align-self: flex-start;
     border: 2px solid var(--steam-border);
     border-radius: 7.5px;
+    color: var(--steam-text);
     text-align: center;
     padding: 2px 8px;
     white-space: nowrap;
+}
+
+.price-value {
+    color: var(--steam-text);
+}
+
+.game-details-dialog {
+    position: relative;
+    width: min(760px, calc(100% - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 0;
+    color: var(--steam-text);
+    background: var(--steam-card);
+    border: 2px solid var(--steam-border);
+    border-radius: 12px;
+}
+
+.game-details-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.game-details-content {
+    padding: 24px;
+}
+
+.game-details-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(250px, 1fr);
+    align-items: start;
+    gap: 20px;
+}
+
+.game-details-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.game-details-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 22px 0 0;
+}
+
+.game-details-info h2 {
+    margin: 0;
+    color: var(--steam-text);
+    font-size: 24px;
+}
+
+.game-details-info p {
+    margin: 0;
+    color: var(--steam-text);
+}
+
+.game-meta {
+    display: grid;
+    width: 100%;
+    gap: 7px;
+    margin: 0;
+}
+
+.game-meta div {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 8px;
+}
+
+.game-meta dt {
+    color: var(--steam-accent);
+    font-weight: 600;
+}
+
+.game-meta dd {
+    margin: 0;
+    color: var(--steam-text);
+}
+
+.game-purchase-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.game-purchase-row .btn {
+    color: var(--steam-text);
+    background: var(--steam-btn);
+    border-color: var(--steam-border);
+}
+
+.game-purchase-row .btn:hover {
+    background: var(--steam-border);
+    border-color: var(--steam-accent);
+}
+
+.cart-feedback {
+    min-height: 1.25em;
+    margin: 0;
+    color: var(--steam-accent);
+    font-size: 13px;
+}
+
+.game-requirements {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--steam-border);
+}
+
+.game-requirements h3 {
+    margin: 0 0 12px;
+    color: var(--steam-text);
+    font-size: 18px;
+}
+
+.requirements-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.requirements-columns h4 {
+    color: var(--steam-accent);
+    font-size: 15px;
+}
+
+.requirements-columns ul {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--steam-text);
+    font-size: 13px;
+}
+
+.requirements-columns li + li {
+    margin-top: 5px;
+}
+
+.cart-dialog {
+    position: relative;
+    width: min(600px, calc(100% - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 0;
+    color: var(--steam-text);
+    background: var(--steam-card);
+    border: 2px solid var(--steam-border);
+    border-radius: 12px;
+}
+
+.cart-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.cart-dialog-content {
+    padding: 24px;
+}
+
+.cart-dialog-content h2 {
+    margin: 0 32px 18px 0;
+    font-size: 22px;
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--steam-border);
+}
+
+.cart-remove-button {
+    padding: 5px 8px;
+    color: var(--steam-text);
+    background: var(--steam-header);
+    border: 1px solid var(--steam-border);
+    border-radius: 4px;
+}
+
+.cart-remove-button:hover {
+    border-color: var(--steam-accent);
+}
+
+.cart-empty {
+    color: var(--steam-text);
+    opacity: 0.75;
+}
+
+.cart-total {
+    margin: 16px 0 0;
+    color: var(--steam-text);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.cart-dialog-content #checkout-button {
+    margin-top: 16px;
+}
+
+.game-dialog-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 1;
+    padding: 0 6px;
+    color: var(--steam-text);
+    background: transparent;
+    border: 0;
+    font-size: 28px;
+    line-height: 1;
+    opacity: 0.75;
+}
+
+.game-dialog-close:hover {
+    color: var(--steam-accent);
+    opacity: 1;
+}
+
+@media (max-width: 600px) {
+    .sale-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cards {
+        grid-template-columns: minmax(0, 280px);
+        justify-content: center;
+    }
+
+    .game-details-content {
+        padding: 18px;
+    }
+
+    .game-details-top,
+    .requirements-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .game-details-info {
+        padding-right: 0;
+    }
+
+    .cart-dialog-content {
+        padding: 18px;
+    }
+
+    .cart-item {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .cart-remove-button {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+    .sale-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, minmax(0, 280px));
+        justify-content: center;
+    }
+}
+
+.not-loged {
+    display: flex;
+}
+
+.loged {
+    display: none;
+}
+
+body.is-logged-in .not-loged {
+    display: none;
+}
+
+body.is-logged-in .loged {
+    display: flex;
+}
+
+.form {
+  --bg-light: var(--steam-accent);
+  --bg-dark: var(--steam-btn);
+  --clr: var(--steam-text);
+  --clr-alpha: var(--steam-btn);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2px solid var(--steam-border);
+  border-radius: 7.5px;
+  gap: 1rem;
+  width: 100%;
+  max-width: 300px;
+}
+
+.form .input-span {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form input[type="email"],
+.form input[type="password"] {
+  border-radius: 0.5rem;
+  padding: 1rem 0.75rem;
+  width: 100%;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--clr-alpha);
+  outline: 2px solid var(--bg-dark);
+}
+
+.form input[type="email"]:focus,
+.form input[type="password"]:focus {
+  outline: 2px solid var(--clr);
+}
+
+.label {
+  align-self: flex-start;
+  color: var(--clr);
+  font-weight: 600;
+}
+
+.form .submit {
+  padding: 1rem 0.75rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 3rem;
+  background-color: var(--bg-dark);
+  color: var(--bg-light);
+  border: none;
+  cursor: pointer;
+  transition: all 300ms;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.form .submit:hover {
+  background-color: var(--clr);
+  color: var(--bg-dark);
+}
+
+.span {
+  text-decoration: none;
+  color: var(--clr);
+}
+
+.span a {
+  color: var(--clr);
+}
+
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.login-page .form {
+  box-sizing: border-box;
+  padding: 1.5rem;
+}
+
+.login-page .form input {
+  box-sizing: border-box;
+}
+
+.auth-message {
+  width: 100%;
+  margin: 0;
+  color: var(--steam-text);
+}
+
+.game-upd-title {
+    margin: 4px 0;
+    color: var(--steam-text);
+    font-size: 17px;
+}
+
+.game-upd-img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.game-upd-name {
+    margin: 0;
+    color: var(--steam-text);
+    font-size: 12px;
+    opacity: 0.75;
+}
+
+.game-upd {
+    flex: 0 0 260px;
+    overflow: hidden;
+    background: var(--steam-card);
+    border: 2px solid var(--steam-border);
+    border-radius: 8px;
+}
+
+.upd-games {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 4px 2px 12px;
+    scrollbar-color: var(--steam-border) var(--steam-card);
+    scrollbar-width: thin;
+}
+
+.upd-games::-webkit-scrollbar {
+    height: 8px;
+}
+
+.upd-games::-webkit-scrollbar-track {
+    background: var(--steam-card);
+}
+
+.upd-games::-webkit-scrollbar-thumb {
+    background: var(--steam-border);
+    border-radius: 4px;
+}
+
+.game-upd-info {
+    padding: 10px 12px 12px;
+}
+
+.game-upd-label {
+    color: var(--steam-accent);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.library-layout {
+    display: flex;
+    min-height: calc(100vh - 78px);
+    background: var(--steam-background);
+    color: var(--steam-text);
+}
+
+.library-sidebar {
+    flex: 0 0 280px;
+    overflow: hidden;
+    background: var(--steam-card);
+    border-right: 1px solid var(--steam-border);
+}
+
+.library-home-row {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    background: var(--steam-header);
+}
+
+.library-home-button,
+.library-view-button,
+.library-games-filter,
+.library-tool-icon,
+.library-search-row button {
+    color: var(--steam-text);
+    border: 0;
+    font-family: inherit;
+}
+
+.library-home-button {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    padding: 8px;
+    background: var(--steam-background);
+    border-radius: 4px;
+    text-align: left;
+    text-decoration: none;
+}
+
+.library-view-button {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3px;
+    width: 36px;
+    padding: 7px;
+    background: var(--steam-background);
+    border-radius: 4px;
+}
+
+.library-view-button span {
+    width: 10px;
+    height: 10px;
+    background: var(--steam-border);
+}
+
+.library-tools {
+    padding: 9px 8px 4px;
+    border-bottom: 1px solid var(--steam-border);
+}
+
+.library-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.library-filter-menu {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.library-games-filter {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 10px;
+    background: var(--steam-background);
+    border-radius: 4px;
+    text-align: left;
+}
+
+.library-chevron {
+    width: 8px;
+    height: 8px;
+    margin: -4px 3px 0 8px;
+    border-right: 1.5px solid var(--steam-accent);
+    border-bottom: 1.5px solid var(--steam-accent);
+    transform: rotate(45deg);
+    transition: transform 150ms ease;
+}
+
+.library-games-filter[aria-expanded="true"] .library-chevron {
+    margin-top: 4px;
+    transform: rotate(225deg);
+}
+
+.library-filter-options {
+    position: absolute;
+    z-index: 5;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    padding: 4px;
+    background: var(--steam-card);
+    border: 1px solid var(--steam-border);
+    border-radius: 5px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.library-filter-options[hidden] {
+    display: none;
+}
+
+.library-filter-options button {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    color: var(--steam-text);
+    background: transparent;
+    border: 0;
+    border-radius: 3px;
+    text-align: left;
+}
+
+.library-filter-options button:hover,
+.library-filter-options button:focus-visible {
+    background: var(--steam-border);
+    outline: none;
+}
+
+.library-tool-icon {
+    width: 26px;
+    padding: 0;
+    background: transparent;
+    color: var(--steam-accent);
+    font-size: 22px;
+}
+
+.library-tool-icon:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.library-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    margin-bottom: 4px;
+    padding: 0 9px;
+    background: var(--steam-background);
+    border-radius: 4px;
+}
+
+.library-search-row svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--steam-accent);
+    stroke-width: 2;
+}
+
+.library-search-row input {
+    flex: 1;
+    min-width: 0;
+    color: var(--steam-text);
+    background: transparent;
+    border: 0;
+    outline: 0;
+}
+
+.library-search-row input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.library-search-row button {
+    padding: 0;
+    background: transparent;
+    color: var(--steam-accent);
+    font-size: 20px;
+}
+
+.library-search-row button:hover {
+    color: var(--steam-text);
+}
+
+.library-categories {
+    padding-top: 8px;
+}
+
+.library-category {
+    position: relative;
+    border-bottom: 1px solid var(--steam-border);
+}
+
+.library-category summary {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 38px 8px 10px;
+    color: var(--steam-accent);
+    background: var(--steam-header);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    list-style: none;
+}
+
+.library-category summary::-webkit-details-marker {
+    display: none;
+}
+
+.library-category summary::before {
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--steam-accent);
+    border-bottom: 1.5px solid var(--steam-accent);
+    content: "";
+    transform: rotate(-45deg);
+    transition: transform 150ms ease;
+}
+
+.library-category[open] summary::before {
+    transform: rotate(45deg);
+}
+
+.library-category-count {
+    margin-left: auto;
+    color: var(--steam-text);
+    font-size: 12px;
+    opacity: 0.55;
+}
+
+.library-category-delete {
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    z-index: 1;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    color: var(--steam-accent);
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.library-category-delete:hover {
+    color: var(--steam-text);
+    background: var(--steam-border);
+}
+
+.library-category-content {
+    padding: 3px 0;
+}
+
+.library-empty {
+    margin: 0;
+    padding: 8px 30px;
+    color: var(--steam-text);
+    font-size: 14px;
+    opacity: 0.65;
+}
+
+.library-empty-list {
+    padding: 12px 10px;
+}
+
+.library-game-row {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) 24px 24px;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    color: var(--steam-text);
+}
+
+.library-game-row:hover {
+    background: var(--steam-background);
+}
+
+.library-game-row.is-selected {
+    background: var(--steam-border);
+}
+
+.library-game-image,
+.library-game-placeholder {
+    width: 26px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
+.library-game-placeholder {
+    background: var(--steam-border);
+}
+
+.library-game-title {
+    overflow: hidden;
+    padding: 0;
+    color: var(--steam-text);
+    background: transparent;
+    border: 0;
+    font-size: 13px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.library-game-title:hover,
+.library-game-title:focus-visible {
+    color: var(--steam-accent);
+}
+
+.library-game-play {
+    padding: 0;
+    color: var(--steam-accent);
+    background: transparent;
+    border: 0;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.library-favorite-button {
+    padding: 0;
+    color: var(--steam-accent);
+    background: transparent;
+    border: 0;
+    font-size: 19px;
+    line-height: 1;
+}
+
+.library-game-category {
+    grid-column: 2 / 5;
+    width: 100%;
+    padding: 4px 6px;
+    color: var(--steam-text);
+    background: var(--steam-background);
+    border: 1px solid var(--steam-border);
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.library-message {
+    margin: 0;
+    padding: 4px 8px;
+    color: var(--steam-accent);
+    font-size: 12px;
+}
+
+.library-dialog {
+    width: min(400px, calc(100% - 32px));
+    padding: 0;
+    color: var(--steam-text);
+    background: var(--steam-card);
+    border: 1px solid var(--steam-border);
+    border-radius: 8px;
+}
+
+.library-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.library-category-form {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+}
+
+.library-category-form h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.library-category-form label {
+    color: var(--steam-text);
+    font-size: 14px;
+}
+
+.library-category-form input {
+    width: 100%;
+    padding: 9px 10px;
+    color: var(--steam-text);
+    background: var(--steam-background);
+    border: 1px solid var(--steam-border);
+    border-radius: 4px;
+}
+
+.library-category-form input:focus {
+    border-color: var(--steam-accent);
+    outline: 1px solid var(--steam-accent);
+}
+
+.library-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.library-dialog-actions button {
+    padding: 8px 12px;
+    color: var(--steam-text);
+    background: var(--steam-header);
+    border: 1px solid var(--steam-border);
+    border-radius: 4px;
+}
+
+.library-dialog-actions .library-dialog-submit {
+    color: var(--steam-header);
+    background: var(--steam-accent);
+}
+
+.library-dialog-actions .library-dialog-delete {
+    color: var(--steam-header);
+    background: var(--steam-accent);
+}
+
+.library-main {
+    flex: 1;
+    min-width: 0;
+    padding: 24px;
+}
+
+.library-section-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.library-section-heading h1,
+.library-section-heading h2 {
+    margin: 0;
+    color: var(--steam-text);
+    font-size: 23px;
+    font-weight: 500;
+}
+
+.library-section-heading span {
+    color: var(--steam-accent);
+    font-size: 13px;
+}
+
+.library-recent {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--steam-border);
+}
+
+.library-recent-games {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.library-recent-card {
+    overflow: hidden;
+    padding: 0;
+    color: var(--steam-text);
+    background: var(--steam-card);
+    border: 1px solid var(--steam-border);
+    border-radius: 7px;
+    text-align: left;
+}
+
+.library-recent-card:hover,
+.library-recent-card:focus-visible {
+    border-color: var(--steam-accent);
+}
+
+.library-recent-card img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.library-recent-card span {
+    display: block;
+    overflow: hidden;
+    padding: 8px 10px;
+    color: var(--steam-text);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.library-empty-main {
+    padding: 18px;
+    background: var(--steam-card);
+    border: 1px dashed var(--steam-border);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.library-home-button:hover,
+.library-view-button:hover,
+.library-games-filter:hover {
+    background: var(--steam-border);
+}
+
+@media (max-width: 600px) {
+    .library-sidebar {
+        flex-basis: 100%;
+    }
+
+    .library-main {
+        padding: 16px;
+    }
 }

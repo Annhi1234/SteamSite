@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вхід — SteamSite</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <form class="form" id="login-form">
+        <span class="input-span">
+            <label for="email" class="label">Пошта</label>
+            <input type="email" name="email" id="email" autocomplete="email" required
+            /></span>
+        <span class="input-span">
+            <label for="password" class="label">Пароль</label>
+            <input type="password" name="password" id="password" autocomplete="current-password" required
+            /></span>
+        <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+        <input class="submit" type="submit" value="Увійти" />
+        <span class="span"><a href="#">Забули пароль?</a></span>
+        <span class="span">Якщо це старий локальний акаунт, зареєструйся повторно — бібліотека перенесеться після входу.</span>
+        <span class="span">Не маєте облікового запису? <a href="registry.html">Зареєструватися</a></span>
+    </form>
+    
+    <script src="api.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>
+
