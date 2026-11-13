@@ -4,11 +4,19 @@ const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const http = require("node:http");
 const path = require("node:path");
+const {
+  initializeDatabase,
+  readDatabaseStore,
+  updateDatabaseStore
+} = require("./database");
+const GAME_CATALOG = require("./data/games.json");
 
 const ROOT = __dirname;
+const USE_DATABASE = Boolean(
+  process.env.DATABASE_URL && !process.env.STEAMSITE_DATA_DIR
+);
 const DATA_DIR = process.env.STEAMSITE_DATA_DIR || path.join(ROOT, "data");
 const STORE_FILE = path.join(DATA_DIR, "store.json");
-const GAMES_FILE = path.join(ROOT, "data", "games.json");
 const SECRET_FILE = process.env.STEAMSITE_SECRET_FILE || path.join(ROOT, ".app-secret");
 const SESSION_COOKIE = "steamsite_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -218,6 +226,12 @@ function clone(value) {
 }
 
 async function readStore() {
+  if (USE_DATABASE) {
+    const store = await readDatabaseStore();
+    validateStore(store);
+    return store;
+  }
+
   let contents;
   try {
     contents = await fs.readFile(STORE_FILE, "utf8");
@@ -239,6 +253,10 @@ async function readStore() {
 }
 
 async function writeStore(store) {
+  if (USE_DATABASE) {
+    throw new Error("The Neon store must be updated with compare-and-swap.");
+  }
+
   const temporaryFile = `${STORE_FILE}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
   try {
     await fs.writeFile(temporaryFile, `${JSON.stringify(store, null, 2)}\n`, {
@@ -252,6 +270,10 @@ async function writeStore(store) {
 }
 
 function updateStore(update) {
+  if (USE_DATABASE) {
+    return updateDatabaseStore(update, clone);
+  }
+
   const operation = storeWriteQueue.then(async () => {
     const draft = clone(await readStore());
     const result = await update(draft);
@@ -263,14 +285,18 @@ function updateStore(update) {
 }
 
 async function initialize() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
   appSecret = await loadSecret();
 
-  const catalog = JSON.parse(await fs.readFile(GAMES_FILE, "utf8"));
-  games = validateGames(catalog);
+  games = validateGames(GAME_CATALOG);
   gamesById = new Map(games.map((game) => [game.id, game]));
   gamesBySteamId = new Map(games.map((game) => [game.steamAppId, game]));
 
+  if (USE_DATABASE) {
+    await initializeDatabase(createEmptyStore());
+    return;
+  }
+
+  await fs.mkdir(DATA_DIR, { recursive: true });
   try {
     await fs.access(STORE_FILE);
     validateStore(JSON.parse(await fs.readFile(STORE_FILE, "utf8")));
@@ -293,6 +319,13 @@ function sendJson(response, status, value, headers = {}) {
 }
 
 async function readJsonBody(request) {
+  if (request.body !== undefined) {
+    if (!isObject(request.body)) {
+      throw new HttpError(400, "Request body must be a JSON object.");
+    }
+    return request.body;
+  }
+
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
@@ -967,34 +1000,36 @@ async function serveStatic(request, response, url) {
 }
 
 function createServer() {
-  return http.createServer(async (request, response) => {
-    response.setHeader("X-Content-Type-Options", "nosniff");
-    response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    response.setHeader("X-Frame-Options", "DENY");
-    try {
-      const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
-      if (url.pathname.startsWith("/api/")) {
-        await handleApi(request, response, url);
-        return;
-      }
-      await serveStatic(request, response, url);
-    } catch (error) {
-      const status = error instanceof HttpError ? error.status : 500;
-      if (status === 500) {
-        console.error(error);
-      }
-      if (!response.headersSent) {
-        sendJson(response, status, {
-          error:
-            error instanceof HttpError
-              ? error.message
-              : "Сталася помилка сервера."
-        });
-      } else {
-        response.destroy();
-      }
+  return http.createServer(handleApiRequest);
+}
+
+async function handleApiRequest(request, response) {
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.setHeader("X-Frame-Options", "DENY");
+  try {
+    const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+    if (url.pathname.startsWith("/api/")) {
+      await handleApi(request, response, url);
+      return;
     }
-  });
+    await serveStatic(request, response, url);
+  } catch (error) {
+    const status = error instanceof HttpError ? error.status : 500;
+    if (status === 500) {
+      console.error(error);
+    }
+    if (!response.headersSent) {
+      sendJson(response, status, {
+        error:
+          error instanceof HttpError
+            ? error.message
+            : "Сталася помилка сервера."
+      });
+    } else {
+      response.destroy(error);
+    }
+  }
 }
 
 async function start() {
@@ -1017,6 +1052,8 @@ if (require.main === module) {
 module.exports = {
   createEmptyStore,
   derivePassword,
+  handleApiRequest,
+  initialize,
   normalizeEmail,
   validateGames,
   validatePassword
