@@ -74,8 +74,50 @@ if (registerForm) {
 
 const loginForm = document.querySelector("#login-form");
 if (loginForm) {
+  let loginLockTimer = null;
+
+  const stopLoginCountdown = () => {
+    if (loginLockTimer) {
+      clearInterval(loginLockTimer);
+      loginLockTimer = null;
+    }
+  };
+
+  const startLoginCountdown = (seconds) => {
+    const submitButton = loginForm.querySelector('[type="submit"]');
+    const messageElement = loginForm.querySelector("#auth-message");
+    let remaining = Math.max(1, Math.ceil(Number(seconds) || 60));
+
+    stopLoginCountdown();
+    submitButton.disabled = true;
+
+    const render = () => {
+      if (remaining <= 0) {
+        stopLoginCountdown();
+        submitButton.disabled = false;
+        if (messageElement) {
+          messageElement.textContent =
+            "Ліміт спроб скинуто. Спробуй увійти знову.";
+        }
+        return;
+      }
+      if (messageElement) {
+        messageElement.textContent =
+          `Забагато невдалих спроб. Спробуй ще раз через ${remaining} с.`;
+      }
+      remaining -= 1;
+    };
+
+    render();
+    loginLockTimer = setInterval(render, 1000);
+  };
+
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (loginLockTimer) {
+      return;
+    }
+
     showAuthMessage(loginForm, "");
 
     const email = loginForm.querySelector("#email").value.trim();
@@ -84,16 +126,39 @@ if (loginForm) {
     submitButton.disabled = true;
     try {
       const { user } = await authApi.post("/api/login", { email, password });
+      stopLoginCountdown();
       await authApi.migrateLegacyData();
       applyUser(user);
       window.location.href = "index.html";
     } catch (error) {
-      showAuthMessage(
-        loginForm,
-        error instanceof Error ? error.message : "Не вдалося увійти."
-      );
+      const details = error && error.details;
+
+      if (
+        error &&
+        error.status === 429 &&
+        details &&
+        details.retryAfterSeconds
+      ) {
+        startLoginCountdown(details.retryAfterSeconds);
+      } else if (
+        details &&
+        Number.isInteger(details.attemptsLeft) &&
+        details.attemptsLeft > 0
+      ) {
+        showAuthMessage(
+          loginForm,
+          `${error.message} Залишилось спроб: ${details.attemptsLeft}.`
+        );
+      } else {
+        showAuthMessage(
+          loginForm,
+          error instanceof Error ? error.message : "Не вдалося увійти."
+        );
+      }
     } finally {
-      submitButton.disabled = false;
+      if (!loginLockTimer) {
+        submitButton.disabled = false;
+      }
     }
   });
 }

@@ -46,6 +46,10 @@ const MIME_TYPES = {
   ".webp": "image/webp"
 };
 const passwordLimits = new Map();
+const loginFailures = new Map();
+const LOGIN_MAX_FAILURES = 3;
+const LOGIN_LOCK_MS = 60_000;
+const LOGIN_FAILURE_WINDOW_MS = 15 * 60_000;
 let games = [];
 let gamesById = new Map();
 let gamesBySteamId = new Map();
@@ -53,9 +57,10 @@ let appSecret;
 let storeWriteQueue = Promise.resolve();
 
 class HttpError extends Error {
-  constructor(status, message) {
+  constructor(status, message, details = {}) {
     super(message);
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -409,6 +414,60 @@ function checkRateLimit(request, action) {
   passwordLimits.set(key, recentAttempts);
 }
 
+function loginAttemptKey(request, email) {
+  return `${request.socket.remoteAddress || "unknown"}:${email}`;
+}
+
+function assertLoginAllowed(key) {
+  const entry = loginFailures.get(key);
+  if (!entry || !entry.lockedUntil) {
+    return;
+  }
+  const now = Date.now();
+  if (entry.lockedUntil <= now) {
+    loginFailures.delete(key);
+    return;
+  }
+  const retryAfterSeconds = Math.ceil((entry.lockedUntil - now) / 1000);
+  throw new HttpError(
+    429,
+    `Забагато невдалих спроб. Спробуй ще раз через ${retryAfterSeconds} с.`,
+    { retryAfterSeconds, attemptsLeft: 0 }
+  );
+}
+
+function recordLoginFailure(key) {
+  const now = Date.now();
+  const entry = loginFailures.get(key) || {
+    count: 0,
+    lockedUntil: 0,
+    updatedAt: 0
+  };
+  if (
+    (entry.lockedUntil && entry.lockedUntil <= now) ||
+    now - entry.updatedAt > LOGIN_FAILURE_WINDOW_MS
+  ) {
+    entry.count = 0;
+    entry.lockedUntil = 0;
+  }
+  entry.count += 1;
+  entry.updatedAt = now;
+  if (entry.count >= LOGIN_MAX_FAILURES) {
+    entry.count = 0;
+    entry.lockedUntil = now + LOGIN_LOCK_MS;
+    loginFailures.set(key, entry);
+    throw new HttpError(
+      429,
+      "Забагато невдалих спроб. Вхід тимчасово заблоковано на 60 секунд.",
+      { retryAfterSeconds: 60, attemptsLeft: 0 }
+    );
+  }
+  loginFailures.set(key, entry);
+  throw new HttpError(401, "Неправильна пошта або пароль.", {
+    attemptsLeft: LOGIN_MAX_FAILURES - entry.count
+  });
+}
+
 async function getCurrentUser(request) {
   const token = parseCookies(request.headers.cookie)[SESSION_COOKIE];
   if (!token || token.length > 256) {
@@ -571,8 +630,11 @@ async function login(request, response) {
   checkOrigin(request);
   checkRateLimit(request, "login");
   const body = await readJsonBody(request);
-  const emailHash = hmac(normalizeEmail(body.email), "email");
+  const email = normalizeEmail(body.email);
+  const emailHash = hmac(email, "email");
   const password = validatePassword(body.password);
+  const attemptKey = loginAttemptKey(request, email);
+  assertLoginAllowed(attemptKey);
   const store = await readStore();
   const userId = store.emailIndex[emailHash];
   const user = userId ? store.users.find((entry) => entry.id === userId) : null;
@@ -583,9 +645,10 @@ async function login(request, response) {
     user ? user.passwordSalt : dummySalt
   );
   if (!user || !passwordMatches(user.passwordHash, actualHash)) {
-    throw new HttpError(401, "Неправильна пошта або пароль.");
+    recordLoginFailure(attemptKey);
   }
 
+  loginFailures.delete(attemptKey);
   const token = await updateStore((draft) => makeSession(draft, user.id));
   sendJson(response, 200, { user: { id: user.id } }, {
     "Set-Cookie": sessionCookie(token, request)
@@ -1029,6 +1092,7 @@ async function handleApiRequest(request, response) {
     }
     if (!response.headersSent) {
       sendJson(response, status, {
+        ...(error instanceof HttpError ? error.details : {}),
         error:
           error instanceof HttpError
             ? error.message

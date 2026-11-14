@@ -21,7 +21,12 @@
       throw new Error("Сервер повернув некоректну відповідь.");
     }
     if (!response.ok) {
-      throw new Error(result.error || `Помилка запиту (${response.status}).`);
+      const error = new Error(
+        result.error || `Помилка запиту (${response.status}).`
+      );
+      error.status = response.status;
+      error.details = result;
+      throw error;
     }
     return result;
   }

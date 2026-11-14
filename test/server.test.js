@@ -302,4 +302,27 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   assert.equal(library.result.games.length, 0);
   storeText = await fs.readFile(storeFile, "utf8");
   assert.equal(storeText.includes("second@example.com"), false);
+
+  const lockEmail = "locked@example.com";
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const failedLogin = await request("/api/login", {
+      method: "POST",
+      body: { email: lockEmail, password: "wrong-pass-123" }
+    });
+    if (attempt < 3) {
+      assert.equal(failedLogin.response.status, 401);
+      assert.equal(failedLogin.result.attemptsLeft, 3 - attempt);
+    } else {
+      assert.equal(failedLogin.response.status, 429);
+      assert.equal(failedLogin.result.attemptsLeft, 0);
+      assert.ok(failedLogin.result.retryAfterSeconds > 0);
+    }
+  }
+
+  const lockedLogin = await request("/api/login", {
+    method: "POST",
+    body: { email: lockEmail, password: "wrong-pass-123" }
+  });
+  assert.equal(lockedLogin.response.status, 429);
+  assert.ok(lockedLogin.result.retryAfterSeconds > 0);
 });
