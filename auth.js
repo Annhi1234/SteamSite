@@ -31,6 +31,10 @@ window.SteamSiteAuthReady = (async () => {
     } catch (error) {
       window.SteamSiteMigrationError = error;
     }
+    if (document.querySelector("#login-form, #register-form")) {
+      window.location.replace("index.html");
+      return user;
+    }
   }
   return user;
 })();

@@ -3,117 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="0; url=library.html">
     <title>Бібліотека — SteamSite</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <link rel="stylesheet" href="style.css">
+    <link rel="canonical" href="library.html">
+    <script>window.location.replace("library.html");</script>
   </head>
   <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-dark">
-            <div class="container-fluid">
-                <a class="navbar-brand text-white" href="index.html" id="va">Steam</a>
-                <input class="form-control f-a" type="search" placeholder="Пошук" aria-label="Search">
-                <button class="btn btn-outline-light" type="submit">Пошук</button>
-                <a class="btn btn-outline-light" href="index.html#game-sale">Розпродаж</a>
-                <div class="loged">
-                    <button class="btn btn-outline-light">Профіль</button>
-                    <button class="btn btn-outline-light" id="logout-btn" type="button">Вийти</button>
-                </div>
-            </div>
-        </nav>
-    </header>
-
-    <main class="library-layout">
-        <aside class="library-sidebar" aria-label="Бібліотека ігор">
-            <div class="library-home-row">
-                <a class="library-home-button" href="index.html">Домівка</a>
-                <button class="library-view-button" id="create-category-button" type="button" aria-label="Створити категорію" title="Створити категорію">
-                    <span></span><span></span><span></span><span></span>
-                </button>
-            </div>
-
-            <div class="library-tools">
-                <div class="library-filter-row">
-                    <div class="library-filter-menu">
-                        <button class="library-games-filter" id="library-filter-button" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="library-filter-options">
-                            <span id="library-filter-label">Ігри</span>
-                            <span class="library-chevron" aria-hidden="true"></span>
-                        </button>
-                        <div class="library-filter-options" id="library-filter-options" role="menu" hidden>
-                            <button type="button" role="menuitem" data-library-filter="all">Усе</button>
-                            <button type="button" role="menuitem" data-library-filter="game">Ігри</button>
-                            <button type="button" role="menuitem" data-library-filter="software">Програми</button>
-                            <button type="button" role="menuitem" data-library-filter="vr">VR</button>
-                            <button type="button" role="menuitem" data-library-filter="music">Музика</button>
-                            <button type="button" role="menuitem" data-library-filter="other">Інше</button>
-                        </div>
-                    </div>
-                    <button class="library-tool-icon" id="sort-library-button" type="button" aria-label="Сортувати за останньою активністю" title="Сортувати за останньою активністю">◷</button>
-                    <button class="library-tool-icon" id="launch-library-button" type="button" aria-label="Запустити вибрану гру" title="Вибери гру, щоб запустити її через Steam" disabled>▷</button>
-                </div>
-                <div class="library-search-row">
-                    <svg aria-hidden="true" viewBox="0 0 24 24">
-                        <circle cx="10.8" cy="10.8" r="6.8"></circle>
-                        <path d="m16 16 5 5"></path>
-                    </svg>
-                    <input type="search" id="library-search" aria-label="Пошук у бібліотеці" placeholder="Пошук">
-                    <button type="button" id="clear-library-search" aria-label="Очистити пошук" title="Очистити пошук">×</button>
-                </div>
-            </div>
-
-            <section class="library-categories" id="library-categories" aria-label="Категорії ігор" aria-live="polite"></section>
-            <p class="library-message" id="library-message" role="status" aria-live="polite"></p>
-        </aside>
-
-        <div class="library-main">
-            <section class="library-updates" aria-labelledby="library-updates-title">
-                <div class="library-section-heading">
-                    <h1 id="library-updates-title">Оновлення</h1>
-                    <span>Новини та оновлення ігор</span>
-                </div>
-                <div class="upd-games" id="library-updates-games" aria-live="polite"></div>
-                <p class="library-empty library-empty-main" id="library-updates-empty">Оновлення з'являться тут для ігор з твоєї бібліотеки.</p>
-            </section>
-
-            <section class="library-recent" aria-labelledby="library-recent-title">
-                <div class="library-section-heading">
-                    <h2 id="library-recent-title">Нещодавні ігри</h2>
-                </div>
-                <div class="library-recent-games" id="library-recent-games" aria-live="polite"></div>
-                <p class="library-empty library-empty-main" id="library-recent-empty">Додані та запущені ігри з'являться тут.</p>
-            </section>
-        </div>
-    </main>
-
-    <dialog class="library-dialog" id="category-dialog" aria-labelledby="category-dialog-title">
-        <form id="category-form" class="library-category-form">
-            <h2 id="category-dialog-title">Нова категорія</h2>
-            <label for="category-name">Назва категорії</label>
-            <input id="category-name" name="category-name" maxlength="40" required>
-            <p class="library-message" id="category-form-message" role="status"></p>
-            <div class="library-dialog-actions">
-                <button type="button" class="library-dialog-cancel" id="cancel-category-button">Скасувати</button>
-                <button type="submit" class="library-dialog-submit">Створити</button>
-            </div>
-        </form>
-    </dialog>
-
-    <dialog class="library-dialog" id="delete-category-dialog" aria-labelledby="delete-category-title">
-        <form id="delete-category-form" class="library-category-form">
-            <h2 id="delete-category-title">Видалити категорію?</h2>
-            <p id="delete-category-message"></p>
-            <div class="library-dialog-actions">
-                <button type="button" class="library-dialog-cancel" id="cancel-delete-category">Скасувати</button>
-                <button type="submit" class="library-dialog-delete">Видалити</button>
-            </div>
-        </form>
-    </dialog>
-
-    <footer class="bg-dark text-white text-center py-3">
-      <p>&copy; 2026 A and I studio</p>
-    </footer>
-  <script src="api.js"></script>
-  <script src="auth.js"></script>
-  <script src="library.js"></script>
+    <p>Сторінку перейменовано. <a href="library.html">Перейти до бібліотеки</a>.</p>
   </body>
 </html>

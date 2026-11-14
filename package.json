@@ -4,7 +4,7 @@
   "private": true,
   "description": "Steam-like game catalog with a small JSON-backed Node.js API",
   "scripts": {
-    "start": "node server.js",
+    "start": "node api/_lib/server.js",
     "test": "node --test"
   },
   "engines": {

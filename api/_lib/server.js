@@ -9,9 +9,9 @@ const {
   readDatabaseStore,
   updateDatabaseStore
 } = require("./database");
-const GAME_CATALOG = require("./data/games.json");
+const GAME_CATALOG = require("../../data/games.json");
 
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, "../..");
 const USE_DATABASE = Boolean(
   process.env.DATABASE_URL && !process.env.STEAMSITE_DATA_DIR
 );
@@ -26,6 +26,7 @@ const PUBLIC_FILES = new Set([
   "auth.js",
   "index.html",
   "libary.html",
+  "library.html",
   "library.js",
   "login.html",
   "registry.html",
@@ -475,6 +476,8 @@ function serializeLibrary(store, userId) {
           publisher: game.publisher,
           type: "game",
           image: game.image,
+          minimum: game.minimum,
+          recommended: game.recommended,
           categoryId: entry.categoryId,
           favorite: entry.favorite,
           lastPlayedAt: entry.lastPlayedAt || 0,
@@ -486,17 +489,22 @@ function serializeLibrary(store, userId) {
 }
 
 function serializeCart(store, userId) {
-  const items = (store.carts[userId] || []).map((item) => {
-    const game = getGame(item.gameId);
+  const items = (store.carts[userId] || []).flatMap((item) => {
+    const game = gamesById.get(item.gameId);
+    if (!game) {
+      return [];
+    }
     const unitPrice = game.salePrice === null ? game.price : game.salePrice;
-    return {
-      gameId: game.id,
-      quantity: item.quantity,
-      title: game.title,
-      image: game.image,
-      unitPrice,
-      lineTotal: unitPrice * item.quantity
-    };
+    return [
+      {
+        gameId: game.id,
+        quantity: item.quantity,
+        title: game.title,
+        image: game.image,
+        unitPrice,
+        lineTotal: unitPrice * item.quantity
+      }
+    ];
   });
   return {
     items,
@@ -894,19 +902,19 @@ async function handleApi(request, response, url) {
     if (game.price === 0) {
       throw new HttpError(400, "Безкоштовні ігри додаються до бібліотеки.");
     }
-    await updateStore((store) => {
+    const added = await updateStore((store) => {
       ensureUserMaps(store, user.id);
-      const existing = store.carts[user.id].find(
-        (item) => item.gameId === game.id
-      );
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        store.carts[user.id].push({ gameId: game.id, quantity: 1 });
+      if (store.libraries[user.id].some((entry) => entry.gameId === game.id)) {
+        throw new HttpError(409, "Гра вже є у твоїй бібліотеці.");
       }
+      if (store.carts[user.id].some((item) => item.gameId === game.id)) {
+        return false;
+      }
+      store.carts[user.id].push({ gameId: game.id, quantity: 1 });
+      return true;
     });
     const store = await readStore();
-    sendJson(response, 200, serializeCart(store, user.id));
+    sendJson(response, 200, { ...serializeCart(store, user.id), added });
     return;
   }
   if (
@@ -941,16 +949,16 @@ async function handleApi(request, response, url) {
           addedCount += 1;
         }
       }
-      const purchasedCount = cart.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
+      const purchasedCount = cart.length;
       store.carts[user.id] = [];
       return { addedCount, purchasedCount };
     });
     sendJson(response, 200, {
       ...receipt,
-      message: "Покупку завершено. Ігри додано до бібліотеки."
+      message:
+        receipt.addedCount > 0
+          ? "Покупку завершено. Ігри додано до бібліотеки."
+          : "Ці ігри вже є у твоїй бібліотеці."
     });
     return;
   }

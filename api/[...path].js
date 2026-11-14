@@ -1,6 +1,6 @@
 "use strict";
 
-const { handleApiRequest, initialize } = require("../server");
+const { handleApiRequest, initialize } = require("./_lib/server");
 
 let initialization;
 

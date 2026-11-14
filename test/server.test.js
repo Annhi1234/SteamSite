@@ -70,17 +70,21 @@ before(async () => {
   dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "steamsite-test-"));
   const port = await findAvailablePort();
   baseUrl = `http://127.0.0.1:${port}`;
-  serverProcess = spawn(process.execPath, [path.join(root, "server.js")], {
-    cwd: root,
-    env: {
-      ...process.env,
-      HOST: "127.0.0.1",
-      PORT: String(port),
-      STEAMSITE_APP_SECRET: crypto.randomBytes(32).toString("base64"),
-      STEAMSITE_DATA_DIR: dataDirectory
-    },
-    stdio: ["ignore", "ignore", "pipe"]
-  });
+  serverProcess = spawn(
+    process.execPath,
+    [path.join(root, "api", "_lib", "server.js")],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        HOST: "127.0.0.1",
+        PORT: String(port),
+        STEAMSITE_APP_SECRET: crypto.randomBytes(32).toString("base64"),
+        STEAMSITE_DATA_DIR: dataDirectory
+      },
+      stdio: ["ignore", "ignore", "pipe"]
+    }
+  );
   let serverError = "";
   serverProcess.stderr.on("data", (chunk) => {
     serverError += chunk.toString();
@@ -164,6 +168,8 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   assert.match(counterStrike.categoryId, /^[0-9a-f-]{36}$/i);
   assert.equal(counterStrike.steamAppId, "730");
   assert.ok(counterStrike.addedAt > 0);
+  assert.ok(Array.isArray(counterStrike.minimum));
+  assert.ok(Array.isArray(counterStrike.recommended));
 
   const createdCategory = await request("/api/categories", {
     method: "POST",
@@ -221,6 +227,14 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   assert.equal(cart.response.status, 200);
   assert.equal(cart.result.total, 100);
   assert.equal(cart.result.items[0].unitPrice, 100);
+  const repeatedCartItem = await request("/api/cart", {
+    method: "POST",
+    body: { gameId: "2fffae13-d44d-4b32-857a-aa83cdc75b84" }
+  });
+  assert.equal(repeatedCartItem.response.status, 200);
+  assert.equal(repeatedCartItem.result.added, false);
+  assert.equal(repeatedCartItem.result.items[0].quantity, 1);
+  assert.equal(repeatedCartItem.result.total, 100);
   const checkout = await request("/api/checkout", {
     method: "POST",
     body: {}
@@ -229,6 +243,11 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   assert.equal(checkout.result.purchasedCount, 1);
   const emptyCart = await request("/api/cart");
   assert.equal(emptyCart.result.items.length, 0);
+  const alreadyOwnedCart = await request("/api/cart", {
+    method: "POST",
+    body: { gameId: "2fffae13-d44d-4b32-857a-aa83cdc75b84" }
+  });
+  assert.equal(alreadyOwnedCart.response.status, 409);
 
   const hostileOrigin = await request("/api/categories", {
     method: "POST",
@@ -262,6 +281,14 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   cookie = login.response.headers.get("set-cookie").split(";")[0];
   library = await request("/api/library");
   assert.equal(library.result.games.length, 3);
+
+  const removedGame = await request(
+    "/api/library/games/d8c70fe2-f11d-47cf-a134-41d092947587",
+    { method: "DELETE" }
+  );
+  assert.equal(removedGame.response.status, 200);
+  library = await request("/api/library");
+  assert.equal(library.result.games.length, 2);
 
   await request("/api/logout", { method: "POST", body: {} });
   cookie = "";

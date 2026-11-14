@@ -7,6 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { after, test } = require("node:test");
 
+const root = path.resolve(__dirname, "..");
 const dataDirectory = path.join(
   os.tmpdir(),
   `steamsite-vercel-test-${crypto.randomUUID()}`
@@ -80,4 +81,25 @@ test("Vercel catch-all serves catalog and authenticated API routes", async () =>
   const library = await invoke("GET", "/api/library", undefined, cookie);
   assert.equal(library.status, 200);
   assert.deepEqual(library.body.games, []);
+
+  const freeGame = await invoke(
+    "POST",
+    "/api/library/games",
+    { gameId: "1eae2cb3-23dc-4589-9da2-c218ca8d7056" },
+    cookie
+  );
+  assert.equal(freeGame.status, 201);
+  assert.equal(freeGame.body.added, true);
+});
+
+test("vercel.json forwards nested API paths to the catch-all function", async () => {
+  const config = JSON.parse(
+    await fs.readFile(path.join(root, "vercel.json"), "utf8")
+  );
+  assert.deepEqual(config.rewrites, [
+    {
+      source: "/api/:path*",
+      destination: "/api/[...path]"
+    }
+  ]);
 });

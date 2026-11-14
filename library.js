@@ -16,11 +16,20 @@ const updatesContainer = document.querySelector("#library-updates-games");
 const updatesEmpty = document.querySelector("#library-updates-empty");
 const recentContainer = document.querySelector("#library-recent-games");
 const recentEmpty = document.querySelector("#library-recent-empty");
-const launchButton = document.querySelector("#launch-library-button");
 const filterButton = document.querySelector("#library-filter-button");
 const filterMenu = document.querySelector("#library-filter-options");
 const filterLabel = document.querySelector("#library-filter-label");
 const searchInput = document.querySelector("#library-search");
+const headerSearchInput = document.querySelector("#library-header-search");
+const gameDetailsDialog = document.querySelector("#library-game-dialog");
+const gameDetailsImage = document.querySelector("#library-game-image");
+const gameDetailsTitle = document.querySelector("#library-game-title");
+const gameDetailsDescription = document.querySelector("#library-game-description");
+const gameDetailsRelease = document.querySelector("#library-game-release");
+const gameDetailsDeveloper = document.querySelector("#library-game-developer");
+const gameDetailsPublisher = document.querySelector("#library-game-publisher");
+const minimumRequirements = document.querySelector("#library-minimum-requirements");
+const recommendedRequirements = document.querySelector("#library-recommended-requirements");
 const categoryDialog = document.querySelector("#category-dialog");
 const categoryForm = document.querySelector("#category-form");
 const categoryNameInput = document.querySelector("#category-name");
@@ -28,10 +37,14 @@ const categoryFormMessage = document.querySelector("#category-form-message");
 const deleteCategoryDialog = document.querySelector("#delete-category-dialog");
 const deleteCategoryForm = document.querySelector("#delete-category-form");
 const deleteCategoryMessage = document.querySelector("#delete-category-message");
+const removeGameDialog = document.querySelector("#remove-game-dialog");
+const removeGameForm = document.querySelector("#remove-game-form");
+const removeGameMessage = document.querySelector("#remove-game-message");
 let libraryState = { categories: [], games: [] };
 let selectedType = "game";
 let sortByRecent = false;
 let categoryPendingDeletion = null;
+let gamePendingRemoval = null;
 let selectedGameId = null;
 
 const GAME_UPDATES = {
@@ -64,14 +77,6 @@ function updateSelectedGame() {
       String(isSelected)
     );
   }
-  launchButton.disabled = !libraryState.games.some(
-    (game) => game.id === selectedGameId
-  );
-}
-
-function selectLibraryGame(gameId) {
-  selectedGameId = gameId;
-  updateSelectedGame();
 }
 
 function createGameRow(game) {
@@ -97,18 +102,26 @@ function createGameRow(game) {
   title.className = "library-game-title";
   title.type = "button";
   title.textContent = game.title;
-  title.title = `Вибрати ${game.title}`;
-  title.addEventListener("click", () => selectLibraryGame(game.id));
+  title.title = `Відкрити опис ${game.title}`;
+  title.addEventListener("click", () => openGameDetails(game));
   row.append(title);
 
-  const playButton = document.createElement("button");
-  playButton.className = "library-game-play";
-  playButton.type = "button";
-  playButton.textContent = "▷";
-  playButton.setAttribute("aria-label", `Запустити ${game.title} через Steam`);
-  playButton.title = `Запустити ${game.title} через Steam`;
-  playButton.addEventListener("click", () => launchGame(game));
-  row.append(playButton);
+  const removeButton = document.createElement("button");
+  removeButton.className = "library-game-remove";
+  removeButton.type = "button";
+  removeButton.textContent = "Видалити";
+  removeButton.setAttribute(
+    "aria-label",
+    `Видалити ${game.title} з бібліотеки`
+  );
+  removeButton.title = `Видалити ${game.title} з бібліотеки`;
+  removeButton.addEventListener("click", () => {
+    gamePendingRemoval = game.id;
+    removeGameMessage.textContent =
+      `Гру «${game.title}» буде видалено з бібліотеки.`;
+    removeGameDialog.showModal();
+  });
+  row.append(removeButton);
 
   const favoriteButton = document.createElement("button");
   favoriteButton.className = "library-favorite-button";
@@ -198,8 +211,8 @@ function renderLibraryPanels() {
       const card = document.createElement("button");
       card.className = "library-recent-card";
       card.type = "button";
-      card.title = `Запустити ${game.title} через Steam`;
-      card.addEventListener("click", () => launchGame(game));
+      card.title = `Відкрити опис ${game.title}`;
+      card.addEventListener("click", () => openGameDetails(game));
       const image = document.createElement("img");
       image.src = game.image;
       image.alt = "";
@@ -212,23 +225,40 @@ function renderLibraryPanels() {
   recentEmpty.hidden = recentGames.length > 0;
 }
 
-async function launchGame(game) {
-  const steamAppId = String(game.steamAppId || "");
-  if (!/^\d+$/.test(steamAppId)) {
-    showLibraryMessage("Не вдалося визначити Steam ID цієї гри.");
+function appendRequirements(list, requirements) {
+  list.replaceChildren();
+  const items = Array.isArray(requirements) ? requirements : [];
+  if (items.length === 0) {
+    const item = document.createElement("li");
+    item.textContent = "Не вказано.";
+    list.append(item);
     return;
   }
+  for (const requirement of items) {
+    const item = document.createElement("li");
+    item.textContent = requirement;
+    list.append(item);
+  }
+}
 
+function openGameDetails(game) {
+  if (!game) {
+    return;
+  }
   selectedGameId = game.id;
   updateSelectedGame();
-  window.open(`steam://run/${steamAppId}`, "_blank", "noopener");
-  try {
-    await updateLibraryGame(game.id, { lastPlayedAt: Date.now() });
-    showLibraryMessage(
-      `Передано запуск ${game.title} у Steam. Для цього потрібен встановлений клієнт Steam.`
-    );
-  } catch (error) {
-    showLibraryMessage(error.message);
+  gameDetailsImage.src = game.image || "";
+  gameDetailsImage.alt = game.title;
+  gameDetailsTitle.textContent = game.title;
+  gameDetailsDescription.textContent = game.description || "Опис відсутній.";
+  gameDetailsRelease.textContent = game.release || "Не вказано";
+  gameDetailsDeveloper.textContent = game.developer || "Не вказано";
+  gameDetailsPublisher.textContent = game.publisher || "Не вказано";
+  appendRequirements(minimumRequirements, game.minimum);
+  appendRequirements(recommendedRequirements, game.recommended);
+  gameDetailsDialog.scrollTop = 0;
+  if (!gameDetailsDialog.open) {
+    gameDetailsDialog.showModal();
   }
 }
 
@@ -406,6 +436,30 @@ deleteCategoryForm.addEventListener("submit", (event) => {
   });
 });
 
+removeGameForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (!gamePendingRemoval) {
+    removeGameDialog.close();
+    return;
+  }
+  const gameId = gamePendingRemoval;
+  gamePendingRemoval = null;
+  removeGameDialog.close();
+  runLibraryAction(async () => {
+    await window.removeLibraryGame(gameId);
+    showLibraryMessage("Гру видалено з бібліотеки.");
+  });
+});
+
+document.querySelector("#cancel-remove-game").addEventListener("click", () => {
+  gamePendingRemoval = null;
+  removeGameDialog.close();
+});
+
+removeGameDialog.addEventListener("close", () => {
+  gamePendingRemoval = null;
+});
+
 categoryForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = categoryNameInput.value.trim();
@@ -447,9 +501,23 @@ document.addEventListener("keydown", (event) => {
     setFilterMenuOpen(false);
   }
 });
-searchInput.addEventListener("input", renderLibrary);
+searchInput.addEventListener("input", () => {
+  headerSearchInput.value = searchInput.value;
+  renderLibrary();
+});
+headerSearchInput.addEventListener("input", () => {
+  searchInput.value = headerSearchInput.value;
+  renderLibrary();
+});
+document
+  .querySelector("#library-header-search-button")
+  .addEventListener("click", () => {
+    searchInput.value = headerSearchInput.value.trim();
+    renderLibrary();
+  });
 document.querySelector("#clear-library-search").addEventListener("click", () => {
   searchInput.value = "";
+  headerSearchInput.value = "";
   renderLibrary();
   searchInput.focus();
 });
@@ -461,12 +529,12 @@ sortButton.addEventListener("click", () => {
   renderLibrary();
 });
 
-launchButton.addEventListener("click", () => {
-  const game = libraryState.games.find(
-    (entry) => entry.id === selectedGameId
-  );
-  if (game) {
-    launchGame(game);
+document
+  .querySelector("#close-library-game")
+  .addEventListener("click", () => gameDetailsDialog.close());
+gameDetailsDialog.addEventListener("click", (event) => {
+  if (event.target === gameDetailsDialog) {
+    gameDetailsDialog.close();
   }
 });
 

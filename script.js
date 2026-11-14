@@ -40,6 +40,7 @@ let featuredIndex = 0;
 let salePage = 0;
 let currentGame = null;
 let cart = { items: [], total: 0 };
+let libraryGameIds = new Set();
 
 function formatPrice(amount) {
   return `${new Intl.NumberFormat("uk-UA").format(amount)}₴`;
@@ -223,6 +224,7 @@ function openGameDetails(game) {
   updateGameActionButton();
   appendRequirementList(minimumRequirements, game.minimum);
   appendRequirementList(recommendedRequirements, game.recommended);
+  gameDetailsDialog.scrollTop = 0;
   gameDetailsDialog.showModal();
 }
 
@@ -230,9 +232,13 @@ function updateGameActionButton() {
   if (!currentGame) {
     return;
   }
-  addToCartButton.textContent = currentGame.price === 0
-    ? "Додати до бібліотеки"
-    : "Додати у кошик";
+  const isOwned = libraryGameIds.has(currentGame.id);
+  addToCartButton.disabled = isOwned;
+  addToCartButton.textContent = isOwned
+    ? "У бібліотеці"
+    : currentGame.price === 0
+      ? "Додати до бібліотеки"
+      : "Додати у кошик";
 }
 
 function renderCart() {
@@ -276,6 +282,12 @@ async function loadCart() {
   renderCart();
 }
 
+async function loadLibraryGameIds() {
+  const library = await api.get("/api/library");
+  libraryGameIds = new Set(library.games.map((game) => game.id));
+  updateGameActionButton();
+}
+
 function requireLogin(action) {
   return window.SteamSiteAuthReady.then((user) => {
     if (user) {
@@ -311,7 +323,7 @@ async function initializeStore() {
       siteMessage.textContent = window.SteamSiteMigrationError.message;
     }
     if (user) {
-      await loadCart();
+      await Promise.all([loadCart(), loadLibraryGameIds()]);
     }
   } catch (error) {
     siteMessage.textContent = error.message;
@@ -348,7 +360,7 @@ loginButton.addEventListener("click", () => {
   window.location.href = "login.html";
 });
 libraryButton.addEventListener("click", () => {
-  window.location.href = "libary.html";
+  window.location.href = "library.html";
 });
 window.setLoggedIn = (isLoggedIn) => {
   document.body.classList.toggle("is-logged-in", isLoggedIn);
@@ -368,24 +380,34 @@ addToCartButton.addEventListener("click", async () => {
   if (!currentGame || !(await requireLogin("продовжити"))) {
     return;
   }
+  if (libraryGameIds.has(currentGame.id)) {
+    gameCartFeedback.textContent = `${currentGame.title} вже є у бібліотеці.`;
+    return;
+  }
   addToCartButton.disabled = true;
   try {
     if (currentGame.price === 0) {
       const result = await api.post("/api/library/games", {
         gameId: currentGame.id
       });
+      if (result.added) {
+        libraryGameIds.add(currentGame.id);
+      }
       gameCartFeedback.textContent = result.added
         ? `${currentGame.title} додано до бібліотеки.`
         : `${currentGame.title} вже є у бібліотеці.`;
     } else {
-      cart = await api.post("/api/cart", { gameId: currentGame.id });
+      const result = await api.post("/api/cart", { gameId: currentGame.id });
+      cart = result;
       renderCart();
-      gameCartFeedback.textContent = `${currentGame.title} додано до кошика.`;
+      gameCartFeedback.textContent = result.added
+        ? `${currentGame.title} додано до кошика.`
+        : `${currentGame.title} вже є у кошику.`;
     }
   } catch (error) {
     gameCartFeedback.textContent = error.message;
   } finally {
-    addToCartButton.disabled = false;
+    updateGameActionButton();
   }
 });
 
@@ -410,7 +432,7 @@ checkoutButton.addEventListener("click", async () => {
   try {
     const receipt = await api.post("/api/checkout", {});
     cartMessage.textContent = receipt.message;
-    await loadCart();
+    await Promise.all([loadCart(), loadLibraryGameIds()]);
   } catch (error) {
     cartMessage.textContent = error.message;
   } finally {

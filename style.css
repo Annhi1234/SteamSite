@@ -29,6 +29,7 @@ header {
 
 .navbar .container-fluid {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     margin: 10px;
     gap: 10px;
@@ -468,7 +469,7 @@ body.is-logged-in #cart-button {
 
 .game-meta div {
     display: grid;
-    grid-template-columns: 90px minmax(0, 1fr);
+    grid-template-columns: 110px minmax(0, 1fr);
     gap: 8px;
 }
 
@@ -1128,7 +1129,7 @@ body.is-logged-in .loged {
 
 .library-game-row {
     display: grid;
-    grid-template-columns: 26px minmax(0, 1fr) 24px 24px;
+    grid-template-columns: 26px minmax(0, 1fr) auto 24px;
     align-items: center;
     gap: 5px;
     padding: 4px 8px;
@@ -1172,13 +1173,23 @@ body.is-logged-in .loged {
     color: var(--steam-accent);
 }
 
-.library-game-play {
-    padding: 0;
-    color: var(--steam-accent);
+.library-game-remove {
+    padding: 2px 5px;
+    color: var(--steam-text);
     background: transparent;
-    border: 0;
-    font-size: 18px;
-    line-height: 1;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+    opacity: 0.7;
+}
+
+.library-game-remove:hover,
+.library-game-remove:focus-visible {
+    color: #ff9b9b;
+    border-color: #ff9b9b;
+    opacity: 1;
 }
 
 .library-favorite-button {
@@ -1199,6 +1210,17 @@ body.is-logged-in .loged {
     border: 1px solid var(--steam-border);
     border-radius: 3px;
     font-size: 12px;
+}
+
+.library-owned-badge {
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 4px 10px;
+    color: var(--steam-accent);
+    border: 1px solid var(--steam-accent);
+    border-radius: 7.5px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .library-message {
@@ -1360,8 +1382,13 @@ body.is-logged-in .loged {
 }
 
 @media (max-width: 600px) {
+    .library-layout {
+        flex-direction: column;
+    }
+
     .library-sidebar {
-        flex-basis: 100%;
+        width: 100%;
+        flex-basis: auto;
     }
 
     .library-main {
