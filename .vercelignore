@@ -1,1 +1,7 @@
 test/
+node_modules/
+data/store.json
+data/store.json.*.tmp
+.app-secret
+.env
+.env.*

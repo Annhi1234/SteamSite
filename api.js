@@ -32,7 +32,13 @@
   }
 
   function readLegacyJson(key, fallback) {
-    const savedValue = localStorage.getItem(key);
+    let savedValue;
+    try {
+      savedValue = localStorage.getItem(key);
+    } catch {
+      // Storage can be blocked by the browser; treat it as "no legacy data".
+      return fallback;
+    }
     if (savedValue === null) {
       return fallback;
     }
@@ -40,6 +46,14 @@
       return JSON.parse(savedValue);
     } catch {
       throw new Error(`Не вдалося прочитати старі дані (${key}). Вони залишилися у браузері.`);
+    }
+  }
+
+  function removeLegacyJson(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Nothing to do: the browser does not expose localStorage here.
     }
   }
 
@@ -70,10 +84,10 @@
         })
       : null;
 
-    localStorage.removeItem("steamsite-demo-accounts");
-    localStorage.removeItem("steamsite-demo-session");
-    localStorage.removeItem("steamsite-library-data");
-    localStorage.removeItem("steamsite-cart-v1");
+    removeLegacyJson("steamsite-demo-accounts");
+    removeLegacyJson("steamsite-demo-session");
+    removeLegacyJson("steamsite-library-data");
+    removeLegacyJson("steamsite-cart-v1");
     return result;
   }
 

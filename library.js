@@ -247,7 +247,13 @@ function openGameDetails(game) {
   }
   selectedGameId = game.id;
   updateSelectedGame();
-  gameDetailsImage.src = game.image || "";
+  if (game.image) {
+    gameDetailsImage.src = game.image;
+    gameDetailsImage.hidden = false;
+  } else {
+    gameDetailsImage.removeAttribute("src");
+    gameDetailsImage.hidden = true;
+  }
   gameDetailsImage.alt = game.title;
   gameDetailsTitle.textContent = game.title;
   gameDetailsDescription.textContent = game.description || "Опис відсутній.";

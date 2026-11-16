@@ -3,20 +3,16 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const http = require("node:http");
+const net = require("node:net");
 const path = require("node:path");
 const {
   initializeDatabase,
   readDatabaseStore,
   updateDatabaseStore
 } = require("./database");
-const { loadEnvFile } = require("./env");
-const { sendVerificationEmail } = require("./email");
 const GAME_CATALOG = require("../../data/games.json");
 
 const ROOT = path.resolve(__dirname, "../..");
-
-loadEnvFile(path.join(ROOT, ".env"));
-
 const USE_DATABASE = Boolean(
   process.env.DATABASE_URL && !process.env.STEAMSITE_DATA_DIR
 );
@@ -25,22 +21,38 @@ const STORE_FILE = path.join(DATA_DIR, "store.json");
 const SECRET_FILE = process.env.STEAMSITE_SECRET_FILE || path.join(ROOT, ".app-secret");
 const SESSION_COOKIE = "steamsite_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
-const WAIT_TOKEN_TTL_MS = 30 * 60 * 1000;
 const MAX_BODY_BYTES = 1024 * 1024;
+const RATE_LIMIT_MAX_ATTEMPTS = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_KEYS = 5_000;
+const MAX_CART_QUANTITY = 10;
+const SESSION_PRUNE_THRESHOLD = 50;
+// Only trust proxy headers when a trusted proxy in front of the app sets them.
+// Vercel does this automatically; locally the socket address is used instead.
+const TRUST_PROXY =
+  process.env.VERCEL === "1" || process.env.STEAMSITE_TRUST_PROXY === "1";
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'none'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "script-src 'self'",
+  "style-src 'self' https://cdn.jsdelivr.net",
+  "img-src 'self' data: https:",
+  "font-src 'self' data:",
+  "connect-src 'self'"
+].join("; ");
 const PUBLIC_FILES = new Set([
   "api.js",
   "auth.js",
   "index.html",
-  "libary.html",
   "library.html",
   "library.js",
   "login.html",
   "registry.html",
   "script.js",
-  "style.css",
-  "verify.html",
-  "verify.js"
+  "style.css"
 ]);
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -188,95 +200,6 @@ function hmac(value, purpose) {
     .digest("hex");
 }
 
-/**
- * Verification emails need the plain address until the account is confirmed,
- * but the store must not keep emails as plain text. The address is therefore
- * encrypted with a key derived from the app secret and dropped after the
- * confirmation.
- */
-function emailEncryptionKey() {
-  return crypto.createHash("sha256").update(appSecret).digest();
-}
-
-function encryptEmail(email) {
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", emailEncryptionKey(), iv);
-  const encrypted = Buffer.concat([cipher.update(email, "utf8"), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64");
-}
-
-function decryptEmail(payload) {
-  try {
-    const buffer = Buffer.from(payload, "base64");
-    const iv = buffer.subarray(0, 12);
-    const authTag = buffer.subarray(12, 28);
-    const encrypted = buffer.subarray(28);
-    const decipher = crypto.createDecipheriv(
-      "aes-256-gcm",
-      emailEncryptionKey(),
-      iv
-    );
-    decipher.setAuthTag(authTag);
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final()
-    ]).toString("utf8");
-  } catch {
-    return null;
-  }
-}
-
-function publicBaseUrl(request) {
-  const configured = (process.env.PUBLIC_BASE_URL || "").trim();
-  if (configured) {
-    return configured.replace(/\/+$/, "");
-  }
-  const forwardedProto = (request.headers["x-forwarded-proto"] || "")
-    .split(",")[0]
-    .trim();
-  const forwardedHost = (request.headers["x-forwarded-host"] || "")
-    .split(",")[0]
-    .trim();
-  const proto =
-    forwardedProto || (process.env.NODE_ENV === "production" ? "https" : "http");
-  const host =
-    forwardedHost ||
-    request.headers.host ||
-    `127.0.0.1:${process.env.PORT || 8767}`;
-  return `${proto}://${host}`;
-}
-
-function verificationLink(request, token) {
-  return `${publicBaseUrl(request)}/verify.html?token=${encodeURIComponent(token)}`;
-}
-
-/**
- * The "no Brevo configured" link is a development convenience only; never
- * expose it on a production deployment.
- */
-function devLinkFor(emailResult) {
-  if (!emailResult || !emailResult.devLink) {
-    return undefined;
-  }
-  return process.env.NODE_ENV === "production" ? undefined : emailResult.devLink;
-}
-
-function issueVerification(user, email) {
-  const token = crypto.randomBytes(32).toString("base64url");
-  const waitToken = crypto.randomBytes(32).toString("base64url");
-  const now = Date.now();
-  user.emailVerified = false;
-  user.verification = {
-    tokenHash: hmac(token, "verify-token"),
-    expiresAt: now + VERIFICATION_TTL_MS,
-    waitTokenHash: hmac(waitToken, "verify-wait"),
-    waitExpiresAt: now + WAIT_TOKEN_TTL_MS,
-    sentAt: now,
-    pendingEmail: encryptEmail(email)
-  };
-  return { token, waitToken };
-}
-
 function normalizeEmail(value) {
   if (typeof value !== "string") {
     throw new HttpError(400, "Введи коректну пошту.");
@@ -289,6 +212,27 @@ function normalizeEmail(value) {
     throw new HttpError(400, "Введи коректну пошту.");
   }
   return email;
+}
+
+const INVALID_CATEGORY_NAME =
+  /[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/;
+
+function isAcceptableCategoryName(name) {
+  return Boolean(name) && !INVALID_CATEGORY_NAME.test(name);
+}
+
+function normalizeCategoryName(value) {
+  if (typeof value !== "string") {
+    throw new HttpError(400, "Введи назву категорії.");
+  }
+  const name = value.trim().slice(0, 40);
+  if (!name) {
+    throw new HttpError(400, "Введи назву категорії.");
+  }
+  if (!isAcceptableCategoryName(name)) {
+    throw new HttpError(400, "Назва категорії містить недопустимі символи.");
+  }
+  return name;
 }
 
 function validatePassword(value) {
@@ -425,7 +369,7 @@ function sendJson(response, status, value, headers = {}) {
 async function readJsonBody(request) {
   if (request.body !== undefined) {
     if (!isObject(request.body)) {
-      throw new HttpError(400, "Request body must be a JSON object.");
+      throw new HttpError(400, "Тіло запиту має бути JSON-об'єктом.");
     }
     return request.body;
   }
@@ -435,7 +379,7 @@ async function readJsonBody(request) {
   for await (const chunk of request) {
     size += chunk.length;
     if (size > MAX_BODY_BYTES) {
-      throw new HttpError(413, "Request body is too large.");
+      throw new HttpError(413, "Тіло запиту завелике.");
     }
     chunks.push(chunk);
   }
@@ -446,14 +390,14 @@ async function readJsonBody(request) {
   try {
     const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
     if (!isObject(body)) {
-      throw new HttpError(400, "Request body must be a JSON object.");
+      throw new HttpError(400, "Тіло запиту має бути JSON-об'єктом.");
     }
     return body;
   } catch (error) {
     if (error instanceof HttpError) {
       throw error;
     }
-    throw new HttpError(400, "Request body contains invalid JSON.");
+    throw new HttpError(400, "Тіло запиту містить некоректний JSON.");
   }
 }
 
@@ -471,16 +415,34 @@ function parseCookies(header) {
   return cookies;
 }
 
+function isSecureRequest(request) {
+  return (
+    process.env.NODE_ENV === "production" ||
+    requestProtocol(request) === "https"
+  );
+}
+
 function sessionCookie(token, request) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = isSecureRequest(request) ? "; Secure" : "";
   return `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(
     SESSION_TTL_MS / 1000
   )}${secure}`;
 }
 
 function clearSessionCookie(request) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = isSecureRequest(request) ? "; Secure" : "";
   return `${SESSION_COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`;
+}
+
+function requestProtocol(request) {
+  const forwarded = request.headers["x-forwarded-proto"];
+  if (typeof forwarded === "string") {
+    const first = forwarded.split(",")[0].trim().toLowerCase();
+    if (first === "http" || first === "https") {
+      return first;
+    }
+  }
+  return request.socket.encrypted ? "https" : "http";
 }
 
 function checkOrigin(request) {
@@ -494,26 +456,98 @@ function checkOrigin(request) {
   } catch {
     throw new HttpError(403, "Запит з цього джерела заборонений.");
   }
-  if (parsedOrigin.host !== request.headers.host) {
+  if (
+    parsedOrigin.host !== request.headers.host ||
+    parsedOrigin.protocol !== `${requestProtocol(request)}:`
+  ) {
     throw new HttpError(403, "Запит з цього джерела заборонений.");
   }
 }
 
-function checkRateLimit(request, action, limit = 10) {
-  const key = `${action}:${request.socket.remoteAddress || "unknown"}`;
+function normalizeIp(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const candidate = value.trim();
+  return net.isIP(candidate) ? candidate : null;
+}
+
+/**
+ * Rate limits and login lockouts are keyed per client, not per socket: behind
+ * Vercel every request arrives from the same proxy address, so using
+ * `socket.remoteAddress` would turn the per-IP limit into a global one.
+ */
+function clientIp(request) {
+  if (TRUST_PROXY) {
+    const realIp = normalizeIp(request.headers["x-real-ip"]);
+    if (realIp) {
+      return realIp;
+    }
+    const forwarded = request.headers["x-forwarded-for"];
+    if (typeof forwarded === "string") {
+      for (const part of forwarded.split(",")) {
+        const ip = normalizeIp(part);
+        if (ip) {
+          return ip;
+        }
+      }
+    }
+  }
+  return request.socket.remoteAddress || "unknown";
+}
+
+function pruneRateLimits(now) {
+  if (passwordLimits.size <= RATE_LIMIT_MAX_KEYS) {
+    return;
+  }
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  for (const [key, timestamps] of passwordLimits) {
+    const recent = timestamps.filter((timestamp) => timestamp > cutoff);
+    if (recent.length === 0) {
+      passwordLimits.delete(key);
+    } else {
+      passwordLimits.set(key, recent);
+    }
+    if (passwordLimits.size <= RATE_LIMIT_MAX_KEYS) {
+      break;
+    }
+  }
+}
+
+function checkRateLimit(request, action) {
+  const key = `${action}:${clientIp(request)}`;
   const now = Date.now();
   const recentAttempts = (passwordLimits.get(key) || []).filter(
-    (timestamp) => now - timestamp < 60_000
+    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS
   );
-  if (recentAttempts.length >= limit) {
-    throw new HttpError(429, "Забагато спроб. Спробуй ще раз за хвилину.");
+  if (recentAttempts.length >= RATE_LIMIT_MAX_ATTEMPTS) {
+    throw new HttpError(429, "Забагато спроб. Спробуй ще раз за хвилину.", {
+      retryAfterSeconds: 60
+    });
   }
   recentAttempts.push(now);
   passwordLimits.set(key, recentAttempts);
+  pruneRateLimits(now);
+}
+
+function pruneLoginFailures(now) {
+  if (loginFailures.size <= RATE_LIMIT_MAX_KEYS) {
+    return;
+  }
+  for (const [key, entry] of loginFailures) {
+    const expiredLock = !entry.lockedUntil || entry.lockedUntil <= now;
+    const stale = now - entry.updatedAt > LOGIN_FAILURE_WINDOW_MS;
+    if (expiredLock && stale) {
+      loginFailures.delete(key);
+    }
+    if (loginFailures.size <= RATE_LIMIT_MAX_KEYS) {
+      break;
+    }
+  }
 }
 
 function loginAttemptKey(request, email) {
-  return `${request.socket.remoteAddress || "unknown"}:${email}`;
+  return `${clientIp(request)}:${email}`;
 }
 
 function assertLoginAllowed(key) {
@@ -536,6 +570,7 @@ function assertLoginAllowed(key) {
 
 function recordLoginFailure(key) {
   const now = Date.now();
+  pruneLoginFailures(now);
   const entry = loginFailures.get(key) || {
     count: 0,
     lockedUntil: 0,
@@ -684,11 +719,29 @@ function upsertLibraryGame(store, userId, gameId) {
   return false;
 }
 
+function pruneExpiredSessions(store, now) {
+  const entries = Object.entries(store.sessions);
+  if (entries.length <= SESSION_PRUNE_THRESHOLD) {
+    return;
+  }
+  for (const [key, session] of entries) {
+    if (
+      !session ||
+      typeof session.expiresAt !== "number" ||
+      session.expiresAt <= now
+    ) {
+      delete store.sessions[key];
+    }
+  }
+}
+
 function makeSession(store, userId) {
+  const now = Date.now();
+  pruneExpiredSessions(store, now);
   const token = crypto.randomBytes(32).toString("base64url");
   store.sessions[hmac(token, "session")] = {
     userId,
-    expiresAt: Date.now() + SESSION_TTL_MS
+    expiresAt: now + SESSION_TTL_MS
   };
   return token;
 }
@@ -697,64 +750,30 @@ async function register(request, response) {
   checkOrigin(request);
   checkRateLimit(request, "register");
   const body = await readJsonBody(request);
-  const email = normalizeEmail(body.email);
-  const emailHash = hmac(email, "email");
+  const emailHash = hmac(normalizeEmail(body.email), "email");
   const password = validatePassword(body.password);
   const salt = crypto.randomBytes(16).toString("hex");
   const passwordHash = await derivePassword(password, salt);
   const userId = crypto.randomUUID();
 
-  const { token, waitToken } = await updateStore((store) => {
-    const existingUserId = store.emailIndex[emailHash];
-    if (existingUserId) {
-      const existing = store.users.find((entry) => entry.id === existingUserId);
-      if (existing && existing.emailVerified === false) {
-        throw new HttpError(
-          409,
-          "Ця пошта вже зареєстрована, але ще не підтверджена. Увійди, щоб надіслати лист ще раз.",
-          { code: "email_not_verified" }
-        );
-      }
+  const token = await updateStore((store) => {
+    if (store.emailIndex[emailHash]) {
       throw new HttpError(409, "Акаунт із такою поштою вже існує.");
     }
-    const user = {
+    store.users.push({
       id: userId,
       emailHash,
       passwordSalt: salt,
       passwordHash,
       createdAt: new Date().toISOString()
-    };
-    const tokens = issueVerification(user, email);
-    store.users.push(user);
+    });
     store.emailIndex[emailHash] = userId;
     ensureUserMaps(store, userId);
-    return tokens;
+    return makeSession(store, userId);
   });
 
-  let emailResult;
-  try {
-    emailResult = await sendVerificationEmail({
-      to: email,
-      link: verificationLink(request, token),
-      dataDirectory: DATA_DIR
-    });
-  } catch (error) {
-    console.error(error);
-    emailResult = {
-      delivered: false,
-      error: "Лист не вдалося надіслати. Спробуй «Надіслати ще раз» на сторінці входу."
-    };
-  }
-
-  sendJson(response, 201, {
-    user: { id: userId, emailVerified: false },
-    verification: {
-      sent: emailResult.delivered === true,
-      error: emailResult.error,
-      devLink: devLinkFor(emailResult)
-    },
-    waitToken,
-    waitSeconds: Math.floor(WAIT_TOKEN_TTL_MS / 1000)
+  sendJson(response, 201, { user: { id: userId } }, {
+    "Set-Cookie": sessionCookie(token, request)
   });
 }
 
@@ -780,153 +799,11 @@ async function login(request, response) {
     recordLoginFailure(attemptKey);
   }
 
-  if (user.emailVerified === false) {
-    throw new HttpError(
-      403,
-      "Спочатку підтверди пошту. Ми надіслали лист із посиланням під час реєстрації.",
-      { code: "email_not_verified", canResend: true }
-    );
-  }
-
   loginFailures.delete(attemptKey);
   const token = await updateStore((draft) => makeSession(draft, user.id));
   sendJson(response, 200, { user: { id: user.id } }, {
     "Set-Cookie": sessionCookie(token, request)
   });
-}
-
-async function resendVerification(request, response) {
-  checkOrigin(request);
-  checkRateLimit(request, "verify-resend", 5);
-  const body = await readJsonBody(request);
-  const email = normalizeEmail(body.email);
-  const emailHash = hmac(email, "email");
-
-  const tokens = await updateStore((store) => {
-    const userId = store.emailIndex[emailHash];
-    const user = userId
-      ? store.users.find((entry) => entry.id === userId)
-      : null;
-    if (!user || user.emailVerified !== false) {
-      return null;
-    }
-    return issueVerification(user, email);
-  });
-
-  if (!tokens) {
-    sendJson(response, 200, { ok: true });
-    return;
-  }
-
-  let emailResult;
-  try {
-    emailResult = await sendVerificationEmail({
-      to: email,
-      link: verificationLink(request, tokens.token),
-      dataDirectory: DATA_DIR
-    });
-  } catch (error) {
-    console.error(error);
-    emailResult = {
-      delivered: false,
-      error: "Лист не вдалося надіслати. Спробуй пізніше."
-    };
-  }
-
-  sendJson(response, 200, {
-    ok: true,
-    sent: emailResult.delivered === true,
-    error: emailResult.error,
-    devLink: devLinkFor(emailResult)
-  });
-}
-
-async function verifyEmail(request, response) {
-  checkOrigin(request);
-  const body = await readJsonBody(request);
-  const token = typeof body.token === "string" ? body.token : "";
-  if (!token || token.length > 256) {
-    throw new HttpError(400, "Посилання недійсне або застаріле.", {
-      code: "invalid_token"
-    });
-  }
-
-  const tokenHash = hmac(token, "verify-token");
-  const result = await updateStore((store) => {
-    const user = store.users.find(
-      (entry) => entry.verification && entry.verification.tokenHash === tokenHash
-    );
-    if (!user || !user.verification || user.verification.expiresAt <= Date.now()) {
-      return null;
-    }
-    const { waitTokenHash, waitExpiresAt } = user.verification;
-    user.emailVerified = true;
-    if (waitTokenHash && waitExpiresAt > Date.now()) {
-      // Keep the wait token so the registration tab can finish on its own.
-      user.verification = { waitTokenHash, waitExpiresAt };
-    } else {
-      delete user.verification;
-    }
-    return {
-      userId: user.id,
-      sessionToken: makeSession(store, user.id)
-    };
-  });
-
-  if (!result) {
-    throw new HttpError(400, "Посилання недійсне або застаріле.", {
-      code: "invalid_token"
-    });
-  }
-
-  sendJson(
-    response,
-    200,
-    { ok: true, user: { id: result.userId } },
-    { "Set-Cookie": sessionCookie(result.sessionToken, request) }
-  );
-}
-
-async function waitForVerification(request, response, url) {
-  const waitToken = url.searchParams.get("token") || "";
-  if (!waitToken || waitToken.length > 256) {
-    throw new HttpError(400, "Некоректне посилання очікування.");
-  }
-
-  const waitTokenHash = hmac(waitToken, "verify-wait");
-  const result = await updateStore((store) => {
-    const user = store.users.find(
-      (entry) =>
-        entry.verification && entry.verification.waitTokenHash === waitTokenHash
-    );
-    if (!user || !user.verification) {
-      return { status: "expired" };
-    }
-    if (user.emailVerified !== true) {
-      if (user.verification.waitExpiresAt <= Date.now()) {
-        return { status: "expired" };
-      }
-      return { status: "pending" };
-    }
-    delete user.verification;
-    return {
-      status: "verified",
-      userId: user.id,
-      sessionToken: makeSession(store, user.id)
-    };
-  });
-
-  if (result.status !== "verified") {
-    sendJson(response, 200, { verified: false, status: result.status });
-    return;
-  }
-
-  sendJson(
-    response,
-    200,
-    { verified: true, user: { id: result.userId } },
-    { "Set-Cookie": sessionCookie(result.sessionToken, request) }
-  );
 }
 
 function legacyUuidMap(legacyCategories, userCategories) {
@@ -940,7 +817,7 @@ function legacyUuidMap(legacyCategories, userCategories) {
       continue;
     }
     const name = category.name.trim().slice(0, 40);
-    if (!name) {
+    if (!isAcceptableCategoryName(name)) {
       continue;
     }
     let saved = userCategories.find(
@@ -998,12 +875,17 @@ async function migrateLegacy(request, response, user) {
         typeof legacyGame.categoryId === "string"
           ? categoryMap.get(legacyGame.categoryId) || null
           : null;
+      const lastPlayedAt = Number(legacyGame.lastPlayedAt);
       store.libraries[user.id].push(
         createLibraryEntry(
           game.id,
           categoryId,
           legacyGame.favorite,
-          Number(legacyGame.lastPlayedAt) || 0
+          Number.isSafeInteger(lastPlayedAt) &&
+            lastPlayedAt > 0 &&
+            lastPlayedAt <= Date.now() + 60_000
+            ? lastPlayedAt
+            : 0
         )
       );
       savedGameIds.add(game.id);
@@ -1019,19 +901,30 @@ async function migrateLegacy(request, response, user) {
         continue;
       }
       const game = gamesBySteamId.get(String(legacyItem.id));
-      const quantity = Number(legacyItem.quantity);
-      if (!game || game.price === 0 || !Number.isInteger(quantity) || quantity <= 0) {
+      const requestedQuantity = Number(legacyItem.quantity);
+      if (
+        !game ||
+        game.price === 0 ||
+        !Number.isInteger(requestedQuantity) ||
+        requestedQuantity <= 0
+      ) {
         continue;
       }
+      const quantity = Math.min(requestedQuantity, MAX_CART_QUANTITY);
       const existing = savedCart.get(game.id);
       if (existing) {
-        existing.quantity += quantity;
+        const nextQuantity = Math.min(
+          existing.quantity + quantity,
+          MAX_CART_QUANTITY
+        );
+        cartAdded += nextQuantity - existing.quantity;
+        existing.quantity = nextQuantity;
       } else {
         const item = { gameId: game.id, quantity };
         store.carts[user.id].push(item);
         savedCart.set(game.id, item);
+        cartAdded += quantity;
       }
-      cartAdded += quantity;
     }
     return {
       categories: store.categories[user.id].length,
@@ -1060,18 +953,6 @@ async function handleApi(request, response, url) {
     await login(request, response);
     return;
   }
-  if (method === "POST" && pathname === "/api/verify") {
-    await verifyEmail(request, response);
-    return;
-  }
-  if (method === "GET" && pathname === "/api/verify/wait") {
-    await waitForVerification(request, response, url);
-    return;
-  }
-  if (method === "POST" && pathname === "/api/verify/resend") {
-    await resendVerification(request, response);
-    return;
-  }
   if (method === "POST" && pathname === "/api/logout") {
     checkOrigin(request);
     const token = parseCookies(request.headers.cookie)[SESSION_COOKIE];
@@ -1088,11 +969,7 @@ async function handleApi(request, response, url) {
 
   if (method === "GET" && pathname === "/api/me") {
     const user = await getCurrentUser(request);
-    sendJson(response, 200, {
-      user: user
-        ? { id: user.id, emailVerified: user.emailVerified !== false }
-        : null
-    });
+    sendJson(response, 200, { user: user ? { id: user.id } : null });
     return;
   }
 
@@ -1190,11 +1067,7 @@ async function handleApi(request, response, url) {
   if (method === "POST" && pathname === "/api/categories") {
     checkOrigin(request);
     const body = await readJsonBody(request);
-    const name =
-      typeof body.name === "string" ? body.name.trim().slice(0, 40) : "";
-    if (!name) {
-      throw new HttpError(400, "Введи назву категорії.");
-    }
+    const name = normalizeCategoryName(body.name);
     const category = await updateStore((store) => {
       ensureUserMaps(store, user.id);
       if (
@@ -1316,19 +1189,19 @@ async function handleApi(request, response, url) {
     return;
   }
 
-  throw new HttpError(404, "API endpoint not found.");
+  throw new HttpError(404, "API-ендпоінт не знайдено.");
 }
 
 async function serveStatic(request, response, url) {
   if (request.method !== "GET" && request.method !== "HEAD") {
-    throw new HttpError(405, "Method not allowed.");
+    throw new HttpError(405, "Метод не підтримується.");
   }
 
   let pathname;
   try {
     pathname = decodeURIComponent(url.pathname);
   } catch {
-    throw new HttpError(400, "Invalid URL path.");
+    throw new HttpError(400, "Некоректний шлях URL.");
   }
   const relativePath = pathname === "/" ? "index.html" : pathname.slice(1);
   const filePath = path.resolve(ROOT, relativePath);
@@ -1338,7 +1211,7 @@ async function serveStatic(request, response, url) {
     path.isAbsolute(relativeToRoot) ||
     !PUBLIC_FILES.has(relativeToRoot)
   ) {
-    throw new HttpError(404, "File not found.");
+    throw new HttpError(404, "Файл не знайдено.");
   }
 
   let file;
@@ -1346,17 +1219,22 @@ async function serveStatic(request, response, url) {
     file = await fs.readFile(filePath);
   } catch (error) {
     if (error.code === "ENOENT" || error.code === "EISDIR") {
-      throw new HttpError(404, "File not found.");
+      throw new HttpError(404, "Файл не знайдено.");
     }
     throw error;
   }
 
-  response.writeHead(200, {
+  const extension = path.extname(filePath).toLowerCase();
+  const headers = {
     "Cache-Control": "no-cache",
     "Content-Length": file.length,
-    "Content-Type": MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream",
+    "Content-Type": MIME_TYPES[extension] || "application/octet-stream",
     "X-Content-Type-Options": "nosniff"
-  });
+  };
+  if (extension === ".html") {
+    headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY;
+  }
+  response.writeHead(200, headers);
   response.end(request.method === "HEAD" ? undefined : file);
 }
 
@@ -1368,6 +1246,14 @@ async function handleApiRequest(request, response) {
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=()"
+  );
+  response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  if (requestProtocol(request) === "https") {
+    response.setHeader("Strict-Transport-Security", "max-age=15552000");
+  }
   try {
     const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
     if (url.pathname.startsWith("/api/")) {
@@ -1379,6 +1265,20 @@ async function handleApiRequest(request, response) {
     const status = error instanceof HttpError ? error.status : 500;
     if (status === 500) {
       console.error(error);
+    }
+    if (status === 429 && !response.headersSent) {
+      const retryAfterSeconds =
+        error instanceof HttpError
+          ? Number(error.details?.retryAfterSeconds)
+          : Number.NaN;
+      response.setHeader(
+        "Retry-After",
+        String(
+          Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+            ? Math.ceil(retryAfterSeconds)
+            : 60
+        )
+      );
     }
     if (!response.headersSent) {
       sendJson(response, status, {

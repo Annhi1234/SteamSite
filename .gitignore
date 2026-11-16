@@ -1,7 +1,4 @@
 node_modules/
 .app-secret
-.env
 data/store.json
 data/store.json.*.tmp
-data/outbox/
-email-preview/
