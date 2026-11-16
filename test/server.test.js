@@ -66,22 +66,64 @@ async function request(pathname, { method = "GET", body, origin } = {}) {
   return { response, result };
 }
 
+async function latestVerificationEmail(email) {
+  const directory = path.join(dataDirectory, "outbox");
+  const files = (await fs.readdir(directory)).sort();
+  for (let index = files.length - 1; index >= 0; index -= 1) {
+    const entry = JSON.parse(
+      await fs.readFile(path.join(directory, files[index]), "utf8")
+    );
+    if (entry.type === "verification" && entry.to === email) {
+      return entry;
+    }
+  }
+  throw new Error(`No verification email for ${email} was written to the outbox.`);
+}
+
+async function verifyAccount(email) {
+  const message = await latestVerificationEmail(email);
+  assert.match(message.link, /\/verify\.html\?token=/);
+  const token = new URL(message.link).searchParams.get("token");
+  const response = await request("/api/verify", {
+    method: "POST",
+    body: { token }
+  });
+  assert.equal(response.response.status, 200);
+  assert.equal(response.result.ok, true);
+  assert.match(response.response.headers.get("set-cookie"), /HttpOnly/);
+  return response.response.headers.get("set-cookie").split(";")[0];
+}
+
+async function registerVerifiedAccount(email, password) {
+  const registration = await request("/api/register", {
+    method: "POST",
+    body: { email, password }
+  });
+  assert.equal(registration.response.status, 201);
+  return verifyAccount(email.toLowerCase());
+}
+
 before(async () => {
   dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "steamsite-test-"));
   const port = await findAvailablePort();
   baseUrl = `http://127.0.0.1:${port}`;
+  const childEnvironment = {
+    ...process.env,
+    HOST: "127.0.0.1",
+    PORT: String(port),
+    STEAMSITE_APP_SECRET: crypto.randomBytes(32).toString("base64"),
+    STEAMSITE_DATA_DIR: dataDirectory,
+    STEAMSITE_SKIP_ENV_FILE: "1"
+  };
+  delete childEnvironment.BREVO_API_KEY;
+  delete childEnvironment.BREVO_SENDER_EMAIL;
+  delete childEnvironment.PUBLIC_BASE_URL;
   serverProcess = spawn(
     process.execPath,
     [path.join(root, "api", "_lib", "server.js")],
     {
       cwd: root,
-      env: {
-        ...process.env,
-        HOST: "127.0.0.1",
-        PORT: String(port),
-        STEAMSITE_APP_SECRET: crypto.randomBytes(32).toString("base64"),
-        STEAMSITE_DATA_DIR: dataDirectory
-      },
+      env: childEnvironment,
       stdio: ["ignore", "ignore", "pipe"]
     }
   );
@@ -122,6 +164,8 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   );
   assert.equal((await request("/server.js")).response.status, 404);
   assert.equal((await request("/data/games.json")).response.status, 404);
+  assert.equal((await fetch(`${baseUrl}/verify.html`)).status, 200);
+  assert.equal((await fetch(`${baseUrl}/verify.js`)).status, 200);
 
   const guestLibrary = await request("/api/library");
   assert.equal(guestLibrary.response.status, 401);
@@ -131,13 +175,32 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
     body: { email: "Player@example.com", password: "example-pass-123" }
   });
   assert.equal(account.response.status, 201);
-  assert.match(account.response.headers.get("set-cookie"), /HttpOnly/);
-  cookie = account.response.headers.get("set-cookie").split(";")[0];
+  assert.equal(account.response.headers.get("set-cookie"), null);
+  assert.equal(account.result.user.emailVerified, false);
+  assert.ok(account.result.waitToken);
+  assert.ok(account.result.verification.sent === false);
 
   const storeFile = path.join(dataDirectory, "store.json");
   let storeText = await fs.readFile(storeFile, "utf8");
   assert.equal(storeText.includes("Player@example.com"), false);
+  assert.equal(storeText.includes("player@example.com"), false);
   assert.equal(storeText.includes("example-pass-123"), false);
+
+  const unverifiedLogin = await request("/api/login", {
+    method: "POST",
+    body: { email: "player@example.com", password: "example-pass-123" }
+  });
+  assert.equal(unverifiedLogin.response.status, 403);
+  assert.equal(unverifiedLogin.result.code, "email_not_verified");
+
+  const unchangedLibrary = await request("/api/library");
+  assert.equal(unchangedLibrary.response.status, 401);
+
+  cookie = await verifyAccount("player@example.com");
+  const verifiedLibrary = await request("/api/library");
+  assert.equal(verifiedLibrary.response.status, 200);
+  storeText = await fs.readFile(storeFile, "utf8");
+  assert.equal(storeText.includes("pendingEmail"), false);
 
   const migration = await request("/api/migrate/legacy", {
     method: "POST",
@@ -297,7 +360,7 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
     body: { email: "second@example.com", password: "another-pass-123" }
   });
   assert.equal(secondAccount.response.status, 201);
-  cookie = secondAccount.response.headers.get("set-cookie").split(";")[0];
+  cookie = await verifyAccount("second@example.com");
   library = await request("/api/library");
   assert.equal(library.result.games.length, 0);
   storeText = await fs.readFile(storeFile, "utf8");
@@ -325,4 +388,101 @@ test("JSON API authenticates users and manages libraries, categories, and sale c
   });
   assert.equal(lockedLogin.response.status, 429);
   assert.ok(lockedLogin.result.retryAfterSeconds > 0);
+});
+
+test("verification links, resend, and the registration wait token work", async () => {
+  const registration = await request("/api/register", {
+    method: "POST",
+    body: { email: "waiter@example.com", password: "wait-pass-123" }
+  });
+  assert.equal(registration.response.status, 201);
+  const waitToken = registration.result.waitToken;
+  assert.ok(waitToken);
+
+  const pending = await request(
+    `/api/verify/wait?token=${encodeURIComponent(waitToken)}`
+  );
+  assert.equal(pending.response.status, 200);
+  assert.equal(pending.result.verified, false);
+  assert.equal(pending.result.status, "pending");
+
+  const bogus = await request("/api/verify", {
+    method: "POST",
+    body: { token: "bogus" }
+  });
+  assert.equal(bogus.response.status, 400);
+  assert.equal(bogus.result.code, "invalid_token");
+
+  const originalEmail = await latestVerificationEmail("waiter@example.com");
+  const resend = await request("/api/verify/resend", {
+    method: "POST",
+    body: { email: "waiter@example.com" }
+  });
+  assert.equal(resend.response.status, 200);
+  assert.equal(resend.result.ok, true);
+  assert.equal(resend.result.sent, false);
+  assert.ok(resend.result.devLink);
+
+  const unknownResend = await request("/api/verify/resend", {
+    method: "POST",
+    body: { email: "nobody@example.com" }
+  });
+  assert.equal(unknownResend.response.status, 200);
+  assert.equal(unknownResend.result.ok, true);
+  assert.equal(unknownResend.result.devLink, undefined);
+
+  // The resend replaces the link from registration.
+  const resentEmail = await latestVerificationEmail("waiter@example.com");
+  assert.equal(resentEmail.link, resend.result.devLink);
+  const resentToken = new URL(resend.result.devLink).searchParams.get("token");
+  const verified = await request("/api/verify", {
+    method: "POST",
+    body: { token: resentToken }
+  });
+  assert.equal(verified.response.status, 200);
+  assert.match(verified.response.headers.get("set-cookie"), /HttpOnly/);
+
+  const replay = await request("/api/verify", {
+    method: "POST",
+    body: { token: resentToken }
+  });
+  assert.equal(replay.response.status, 400);
+  assert.equal(replay.result.code, "invalid_token");
+
+  const staleToken = new URL(originalEmail.link).searchParams.get("token");
+  const staleLink = await request("/api/verify", {
+    method: "POST",
+    body: { token: staleToken }
+  });
+  assert.equal(staleLink.response.status, 400);
+  assert.equal(staleLink.result.code, "invalid_token");
+
+  const outdatedWait = await request(
+    `/api/verify/wait?token=${encodeURIComponent(waitToken)}`
+  );
+  assert.equal(outdatedWait.result.verified, false);
+  assert.equal(outdatedWait.result.status, "expired");
+
+  const login = await request("/api/login", {
+    method: "POST",
+    body: { email: "waiter@example.com", password: "wait-pass-123" }
+  });
+  assert.equal(login.response.status, 200);
+  cookie = login.response.headers.get("set-cookie").split(";")[0];
+
+  const secondRegistration = await request("/api/register", {
+    method: "POST",
+    body: { email: "tab-waiter@example.com", password: "tab-pass-123" }
+  });
+  assert.equal(secondRegistration.response.status, 201);
+  await verifyAccount("tab-waiter@example.com");
+  const confirmed = await request(
+    `/api/verify/wait?token=${encodeURIComponent(secondRegistration.result.waitToken)}`
+  );
+  assert.equal(confirmed.result.verified, true);
+  assert.match(confirmed.response.headers.get("set-cookie"), /HttpOnly/);
+  cookie = confirmed.response.headers.get("set-cookie").split(";")[0];
+  const ownLibrary = await request("/api/library");
+  assert.equal(ownLibrary.response.status, 200);
+  assert.deepEqual(ownLibrary.result.games, []);
 });

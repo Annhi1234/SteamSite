@@ -14,6 +14,9 @@ const dataDirectory = path.join(
 );
 process.env.STEAMSITE_DATA_DIR = dataDirectory;
 process.env.STEAMSITE_APP_SECRET = crypto.randomBytes(32).toString("base64");
+process.env.STEAMSITE_SKIP_ENV_FILE = "1";
+delete process.env.BREVO_API_KEY;
+delete process.env.BREVO_SENDER_EMAIL;
 const handler = require("../api/[...path]");
 
 function createResponse() {
@@ -75,9 +78,35 @@ test("Vercel catch-all serves catalog and authenticated API routes", async () =>
     password: "example-pass-123"
   });
   assert.equal(registration.status, 201);
-  assert.match(registration.headers["Set-Cookie"], /HttpOnly/);
+  assert.equal(registration.body.user.emailVerified, false);
+  assert.equal(registration.headers["Set-Cookie"], undefined);
 
-  const cookie = registration.headers["Set-Cookie"].split(";")[0];
+  const blocked = await invoke("POST", "/api/login", {
+    email: "vercel-player@example.com",
+    password: "example-pass-123"
+  });
+  assert.equal(blocked.status, 403);
+  assert.equal(blocked.body.code, "email_not_verified");
+
+  const outbox = await fs.readdir(path.join(dataDirectory, "outbox"));
+  let verificationLink = null;
+  for (const fileName of outbox.sort()) {
+    const entry = JSON.parse(
+      await fs.readFile(path.join(dataDirectory, "outbox", fileName), "utf8")
+    );
+    if (entry.type === "verification" && entry.to === "vercel-player@example.com") {
+      verificationLink = entry.link;
+    }
+  }
+  assert.ok(verificationLink);
+
+  const token = new URL(verificationLink).searchParams.get("token");
+  const verification = await invoke("POST", "/api/verify", { token });
+  assert.equal(verification.status, 200);
+  assert.equal(verification.body.ok, true);
+  assert.match(verification.headers["Set-Cookie"], /HttpOnly/);
+
+  const cookie = verification.headers["Set-Cookie"].split(";")[0];
   const library = await invoke("GET", "/api/library", undefined, cookie);
   assert.equal(library.status, 200);
   assert.deepEqual(library.body.games, []);

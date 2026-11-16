@@ -799,6 +799,80 @@ body.is-logged-in .loged {
   color: var(--steam-text);
 }
 
+.form .resend {
+  width: 100%;
+  padding: 0.9rem 0.75rem;
+  border-radius: 3rem;
+  border: 2px solid var(--steam-border);
+  background: transparent;
+  color: var(--steam-text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 300ms;
+}
+
+.form .resend:hover:not(:disabled) {
+  background: var(--steam-btn);
+  color: var(--steam-accent);
+}
+
+.form .resend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form[hidden],
+.verify-panel[hidden],
+.verify-dev-link[hidden],
+.form .resend[hidden] {
+  display: none;
+}
+
+.verify-panel {
+  box-sizing: border-box;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.verify-title {
+  margin: 0;
+  color: var(--steam-text);
+  font-size: 1.15rem;
+}
+
+.verify-panel .auth-message {
+  text-align: left;
+  line-height: 1.5;
+}
+
+.verify-timer {
+  width: 100%;
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--steam-text);
+}
+
+.verify-dev-link {
+  width: 100%;
+  margin: 0;
+  color: var(--steam-text);
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.verify-dev-link a,
+.auth-message a {
+  color: var(--steam-accent);
+}
+
+.verify-panel .submit {
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
 .game-upd-title {
     margin: 4px 0;
     color: var(--steam-text);

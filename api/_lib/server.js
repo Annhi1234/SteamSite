@@ -9,9 +9,14 @@ const {
   readDatabaseStore,
   updateDatabaseStore
 } = require("./database");
+const { loadEnvFile } = require("./env");
+const { sendVerificationEmail } = require("./email");
 const GAME_CATALOG = require("../../data/games.json");
 
 const ROOT = path.resolve(__dirname, "../..");
+
+loadEnvFile(path.join(ROOT, ".env"));
+
 const USE_DATABASE = Boolean(
   process.env.DATABASE_URL && !process.env.STEAMSITE_DATA_DIR
 );
@@ -20,6 +25,8 @@ const STORE_FILE = path.join(DATA_DIR, "store.json");
 const SECRET_FILE = process.env.STEAMSITE_SECRET_FILE || path.join(ROOT, ".app-secret");
 const SESSION_COOKIE = "steamsite_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+const WAIT_TOKEN_TTL_MS = 30 * 60 * 1000;
 const MAX_BODY_BYTES = 1024 * 1024;
 const PUBLIC_FILES = new Set([
   "api.js",
@@ -31,7 +38,9 @@ const PUBLIC_FILES = new Set([
   "login.html",
   "registry.html",
   "script.js",
-  "style.css"
+  "style.css",
+  "verify.html",
+  "verify.js"
 ]);
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -177,6 +186,95 @@ function hmac(value, purpose) {
     .createHmac("sha256", appSecret)
     .update(`${purpose}\0${value}`, "utf8")
     .digest("hex");
+}
+
+/**
+ * Verification emails need the plain address until the account is confirmed,
+ * but the store must not keep emails as plain text. The address is therefore
+ * encrypted with a key derived from the app secret and dropped after the
+ * confirmation.
+ */
+function emailEncryptionKey() {
+  return crypto.createHash("sha256").update(appSecret).digest();
+}
+
+function encryptEmail(email) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", emailEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(email, "utf8"), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64");
+}
+
+function decryptEmail(payload) {
+  try {
+    const buffer = Buffer.from(payload, "base64");
+    const iv = buffer.subarray(0, 12);
+    const authTag = buffer.subarray(12, 28);
+    const encrypted = buffer.subarray(28);
+    const decipher = crypto.createDecipheriv(
+      "aes-256-gcm",
+      emailEncryptionKey(),
+      iv
+    );
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final()
+    ]).toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+function publicBaseUrl(request) {
+  const configured = (process.env.PUBLIC_BASE_URL || "").trim();
+  if (configured) {
+    return configured.replace(/\/+$/, "");
+  }
+  const forwardedProto = (request.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim();
+  const forwardedHost = (request.headers["x-forwarded-host"] || "")
+    .split(",")[0]
+    .trim();
+  const proto =
+    forwardedProto || (process.env.NODE_ENV === "production" ? "https" : "http");
+  const host =
+    forwardedHost ||
+    request.headers.host ||
+    `127.0.0.1:${process.env.PORT || 8767}`;
+  return `${proto}://${host}`;
+}
+
+function verificationLink(request, token) {
+  return `${publicBaseUrl(request)}/verify.html?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * The "no Brevo configured" link is a development convenience only; never
+ * expose it on a production deployment.
+ */
+function devLinkFor(emailResult) {
+  if (!emailResult || !emailResult.devLink) {
+    return undefined;
+  }
+  return process.env.NODE_ENV === "production" ? undefined : emailResult.devLink;
+}
+
+function issueVerification(user, email) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const waitToken = crypto.randomBytes(32).toString("base64url");
+  const now = Date.now();
+  user.emailVerified = false;
+  user.verification = {
+    tokenHash: hmac(token, "verify-token"),
+    expiresAt: now + VERIFICATION_TTL_MS,
+    waitTokenHash: hmac(waitToken, "verify-wait"),
+    waitExpiresAt: now + WAIT_TOKEN_TTL_MS,
+    sentAt: now,
+    pendingEmail: encryptEmail(email)
+  };
+  return { token, waitToken };
 }
 
 function normalizeEmail(value) {
@@ -401,13 +499,13 @@ function checkOrigin(request) {
   }
 }
 
-function checkRateLimit(request, action) {
+function checkRateLimit(request, action, limit = 10) {
   const key = `${action}:${request.socket.remoteAddress || "unknown"}`;
   const now = Date.now();
   const recentAttempts = (passwordLimits.get(key) || []).filter(
     (timestamp) => now - timestamp < 60_000
   );
-  if (recentAttempts.length >= 10) {
+  if (recentAttempts.length >= limit) {
     throw new HttpError(429, "Забагато спроб. Спробуй ще раз за хвилину.");
   }
   recentAttempts.push(now);
@@ -599,30 +697,64 @@ async function register(request, response) {
   checkOrigin(request);
   checkRateLimit(request, "register");
   const body = await readJsonBody(request);
-  const emailHash = hmac(normalizeEmail(body.email), "email");
+  const email = normalizeEmail(body.email);
+  const emailHash = hmac(email, "email");
   const password = validatePassword(body.password);
   const salt = crypto.randomBytes(16).toString("hex");
   const passwordHash = await derivePassword(password, salt);
   const userId = crypto.randomUUID();
 
-  const token = await updateStore((store) => {
-    if (store.emailIndex[emailHash]) {
+  const { token, waitToken } = await updateStore((store) => {
+    const existingUserId = store.emailIndex[emailHash];
+    if (existingUserId) {
+      const existing = store.users.find((entry) => entry.id === existingUserId);
+      if (existing && existing.emailVerified === false) {
+        throw new HttpError(
+          409,
+          "Ця пошта вже зареєстрована, але ще не підтверджена. Увійди, щоб надіслати лист ще раз.",
+          { code: "email_not_verified" }
+        );
+      }
       throw new HttpError(409, "Акаунт із такою поштою вже існує.");
     }
-    store.users.push({
+    const user = {
       id: userId,
       emailHash,
       passwordSalt: salt,
       passwordHash,
       createdAt: new Date().toISOString()
-    });
+    };
+    const tokens = issueVerification(user, email);
+    store.users.push(user);
     store.emailIndex[emailHash] = userId;
     ensureUserMaps(store, userId);
-    return makeSession(store, userId);
+    return tokens;
   });
 
-  sendJson(response, 201, { user: { id: userId } }, {
-    "Set-Cookie": sessionCookie(token, request)
+  let emailResult;
+  try {
+    emailResult = await sendVerificationEmail({
+      to: email,
+      link: verificationLink(request, token),
+      dataDirectory: DATA_DIR
+    });
+  } catch (error) {
+    console.error(error);
+    emailResult = {
+      delivered: false,
+      error: "Лист не вдалося надіслати. Спробуй «Надіслати ще раз» на сторінці входу."
+    };
+  }
+
+  sendJson(response, 201, {
+    user: { id: userId, emailVerified: false },
+    verification: {
+      sent: emailResult.delivered === true,
+      error: emailResult.error,
+      devLink: devLinkFor(emailResult)
+    },
+    waitToken,
+    waitSeconds: Math.floor(WAIT_TOKEN_TTL_MS / 1000)
   });
 }
 
@@ -648,11 +780,153 @@ async function login(request, response) {
     recordLoginFailure(attemptKey);
   }
 
+  if (user.emailVerified === false) {
+    throw new HttpError(
+      403,
+      "Спочатку підтверди пошту. Ми надіслали лист із посиланням під час реєстрації.",
+      { code: "email_not_verified", canResend: true }
+    );
+  }
+
   loginFailures.delete(attemptKey);
   const token = await updateStore((draft) => makeSession(draft, user.id));
   sendJson(response, 200, { user: { id: user.id } }, {
     "Set-Cookie": sessionCookie(token, request)
   });
+}
+
+async function resendVerification(request, response) {
+  checkOrigin(request);
+  checkRateLimit(request, "verify-resend", 5);
+  const body = await readJsonBody(request);
+  const email = normalizeEmail(body.email);
+  const emailHash = hmac(email, "email");
+
+  const tokens = await updateStore((store) => {
+    const userId = store.emailIndex[emailHash];
+    const user = userId
+      ? store.users.find((entry) => entry.id === userId)
+      : null;
+    if (!user || user.emailVerified !== false) {
+      return null;
+    }
+    return issueVerification(user, email);
+  });
+
+  if (!tokens) {
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
+  let emailResult;
+  try {
+    emailResult = await sendVerificationEmail({
+      to: email,
+      link: verificationLink(request, tokens.token),
+      dataDirectory: DATA_DIR
+    });
+  } catch (error) {
+    console.error(error);
+    emailResult = {
+      delivered: false,
+      error: "Лист не вдалося надіслати. Спробуй пізніше."
+    };
+  }
+
+  sendJson(response, 200, {
+    ok: true,
+    sent: emailResult.delivered === true,
+    error: emailResult.error,
+    devLink: devLinkFor(emailResult)
+  });
+}
+
+async function verifyEmail(request, response) {
+  checkOrigin(request);
+  const body = await readJsonBody(request);
+  const token = typeof body.token === "string" ? body.token : "";
+  if (!token || token.length > 256) {
+    throw new HttpError(400, "Посилання недійсне або застаріле.", {
+      code: "invalid_token"
+    });
+  }
+
+  const tokenHash = hmac(token, "verify-token");
+  const result = await updateStore((store) => {
+    const user = store.users.find(
+      (entry) => entry.verification && entry.verification.tokenHash === tokenHash
+    );
+    if (!user || !user.verification || user.verification.expiresAt <= Date.now()) {
+      return null;
+    }
+    const { waitTokenHash, waitExpiresAt } = user.verification;
+    user.emailVerified = true;
+    if (waitTokenHash && waitExpiresAt > Date.now()) {
+      // Keep the wait token so the registration tab can finish on its own.
+      user.verification = { waitTokenHash, waitExpiresAt };
+    } else {
+      delete user.verification;
+    }
+    return {
+      userId: user.id,
+      sessionToken: makeSession(store, user.id)
+    };
+  });
+
+  if (!result) {
+    throw new HttpError(400, "Посилання недійсне або застаріле.", {
+      code: "invalid_token"
+    });
+  }
+
+  sendJson(
+    response,
+    200,
+    { ok: true, user: { id: result.userId } },
+    { "Set-Cookie": sessionCookie(result.sessionToken, request) }
+  );
+}
+
+async function waitForVerification(request, response, url) {
+  const waitToken = url.searchParams.get("token") || "";
+  if (!waitToken || waitToken.length > 256) {
+    throw new HttpError(400, "Некоректне посилання очікування.");
+  }
+
+  const waitTokenHash = hmac(waitToken, "verify-wait");
+  const result = await updateStore((store) => {
+    const user = store.users.find(
+      (entry) =>
+        entry.verification && entry.verification.waitTokenHash === waitTokenHash
+    );
+    if (!user || !user.verification) {
+      return { status: "expired" };
+    }
+    if (user.emailVerified !== true) {
+      if (user.verification.waitExpiresAt <= Date.now()) {
+        return { status: "expired" };
+      }
+      return { status: "pending" };
+    }
+    delete user.verification;
+    return {
+      status: "verified",
+      userId: user.id,
+      sessionToken: makeSession(store, user.id)
+    };
+  });
+
+  if (result.status !== "verified") {
+    sendJson(response, 200, { verified: false, status: result.status });
+    return;
+  }
+
+  sendJson(
+    response,
+    200,
+    { verified: true, user: { id: result.userId } },
+    { "Set-Cookie": sessionCookie(result.sessionToken, request) }
+  );
 }
 
 function legacyUuidMap(legacyCategories, userCategories) {
@@ -786,6 +1060,18 @@ async function handleApi(request, response, url) {
     await login(request, response);
     return;
   }
+  if (method === "POST" && pathname === "/api/verify") {
+    await verifyEmail(request, response);
+    return;
+  }
+  if (method === "GET" && pathname === "/api/verify/wait") {
+    await waitForVerification(request, response, url);
+    return;
+  }
+  if (method === "POST" && pathname === "/api/verify/resend") {
+    await resendVerification(request, response);
+    return;
+  }
   if (method === "POST" && pathname === "/api/logout") {
     checkOrigin(request);
     const token = parseCookies(request.headers.cookie)[SESSION_COOKIE];
@@ -802,7 +1088,11 @@ async function handleApi(request, response, url) {
 
   if (method === "GET" && pathname === "/api/me") {
     const user = await getCurrentUser(request);
-    sendJson(response, 200, { user: user ? { id: user.id } : null });
+    sendJson(response, 200, {
+      user: user
+        ? { id: user.id, emailVerified: user.emailVerified !== false }
+        : null
+    });
     return;
   }
 
