@@ -1,7 +1,6 @@
 "use strict";
 
 const libraryApi = window.SteamSiteApi;
-const LIBRARY_TYPES = ["game", "software", "vr", "music", "other"];
 const LIBRARY_TYPE_LABELS = {
   all: "Усе",
   game: "Ігри",
@@ -73,7 +72,7 @@ function updateSelectedGame() {
     const isSelected = row.dataset.gameId === selectedGameId;
     row.classList.toggle("is-selected", isSelected);
     row.querySelector(".library-game-title").setAttribute(
-      "aria-pressed",
+      "aria-current",
       String(isSelected)
     );
   }
@@ -164,13 +163,22 @@ function createGameRow(game) {
   return row;
 }
 
+function appendGameImage(container, game, className, alt) {
+  if (!game.image) {
+    return;
+  }
+  const image = document.createElement("img");
+  image.className = className;
+  image.src = game.image;
+  image.alt = alt;
+  image.addEventListener("error", () => image.remove());
+  container.append(image);
+}
+
 function createUpdateCard(game, update) {
   const card = document.createElement("article");
   card.className = "game-upd";
-  const image = document.createElement("img");
-  image.className = "game-upd-img";
-  image.src = game.image;
-  image.alt = game.title;
+  appendGameImage(card, game, "game-upd-img", game.title);
   const info = document.createElement("div");
   info.className = "game-upd-info";
   const label = document.createElement("span");
@@ -183,7 +191,7 @@ function createUpdateCard(game, update) {
   name.className = "game-upd-name";
   name.textContent = update.name;
   info.append(label, title, name);
-  card.append(image, info);
+  card.append(info);
   return card;
 }
 
@@ -213,12 +221,10 @@ function renderLibraryPanels() {
       card.type = "button";
       card.title = `Відкрити опис ${game.title}`;
       card.addEventListener("click", () => openGameDetails(game));
-      const image = document.createElement("img");
-      image.src = game.image;
-      image.alt = "";
+      appendGameImage(card, game, "", "");
       const title = document.createElement("span");
       title.textContent = game.title;
-      card.append(image, title);
+      card.append(title);
       return card;
     })
   );
@@ -544,18 +550,6 @@ gameDetailsDialog.addEventListener("click", (event) => {
   }
 });
 
-window.addLibraryGame = async function (game) {
-  if (!game || game.id === undefined || game.type !== "game") {
-    throw new Error("Для додавання потрібна гра з UUID.");
-  }
-  await libraryApi.post("/api/library/games", { gameId: String(game.id) });
-  await refreshLibrary();
-};
-
-window.setLibraryGameFavorite = (gameId, isFavorite) =>
-  updateLibraryGame(String(gameId), { favorite: Boolean(isFavorite) });
-window.assignLibraryGameCategory = (gameId, categoryId) =>
-  updateLibraryGame(String(gameId), { categoryId: categoryId || null });
 window.removeLibraryGame = async (gameId) => {
   await libraryApi.delete(
     `/api/library/games/${encodeURIComponent(String(gameId))}`

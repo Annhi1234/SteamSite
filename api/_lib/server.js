@@ -46,13 +46,24 @@ const CONTENT_SECURITY_POLICY = [
 const PUBLIC_FILES = new Set([
   "api.js",
   "auth.js",
+  "favicon.svg",
   "index.html",
   "library.html",
   "library.js",
   "login.html",
   "registry.html",
+  "robots.txt",
   "script.js",
   "style.css"
+]);
+// Protected API routes all start with one of these segments. Unknown paths are
+// reported as 404 before authentication, so guests do not get a misleading 401.
+const PROTECTED_API_PREFIXES = new Set([
+  "library",
+  "categories",
+  "cart",
+  "checkout",
+  "migrate"
 ]);
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -64,6 +75,7 @@ const MIME_TYPES = {
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
   ".webp": "image/webp"
 };
 const passwordLimits = new Map();
@@ -310,10 +322,31 @@ async function writeStore(store) {
     await fs.writeFile(temporaryFile, `${JSON.stringify(store, null, 2)}\n`, {
       mode: 0o600
     });
-    await fs.rename(temporaryFile, STORE_FILE);
+    await replaceFile(temporaryFile, STORE_FILE);
   } catch (error) {
     await fs.rm(temporaryFile, { force: true });
     throw error;
+  }
+}
+
+/**
+ * On Windows an antivirus scanner or the search indexer can hold the
+ * destination file for a few milliseconds, which makes rename fail with
+ * EPERM/EBUSY/EACCES. A short retry keeps writes atomic instead of turning
+ * an otherwise valid request into a 500 error.
+ */
+async function replaceFile(source, destination) {
+  const retryableCodes = new Set(["EPERM", "EBUSY", "EACCES"]);
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await fs.rename(source, destination);
+      return;
+    } catch (error) {
+      if (attempt >= 5 || !retryableCodes.has(error.code)) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10 * (attempt + 1)));
+    }
   }
 }
 
@@ -973,8 +1006,11 @@ async function handleApi(request, response, url) {
     return;
   }
 
-  const user = await requireUser(request);
   const segments = pathname.split("/").filter(Boolean);
+  if (!PROTECTED_API_PREFIXES.has(segments[1])) {
+    throw new HttpError(404, "API-ендпоінт не знайдено.");
+  }
+  const user = await requireUser(request);
 
   if (method === "GET" && pathname === "/api/library") {
     const store = await readStore();
@@ -1175,7 +1211,10 @@ async function handleApi(request, response, url) {
           addedCount += 1;
         }
       }
-      const purchasedCount = cart.length;
+      const purchasedCount = cart.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
       store.carts[user.id] = [];
       return { addedCount, purchasedCount };
     });

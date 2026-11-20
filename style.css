@@ -35,11 +35,6 @@ header {
     gap: 10px;
 }
 
-.loged {
-    align-items: center;
-    gap: 10px;
-}
-
 .navbar .form-control.f-a {
     flex: 1 1 auto;
     width: auto;
@@ -688,6 +683,8 @@ body.is-logged-in #cart-button {
 
 .loged {
     display: none;
+    align-items: center;
+    gap: 10px;
 }
 
 body.is-logged-in .not-loged {
@@ -1405,4 +1402,14 @@ body.is-logged-in .loged {
     .library-main {
         padding: 16px;
     }
+}
+.search-status {
+  min-height: 1.4em;
+  margin: 0 0 8px 10px;
+  color: #c7d5e0;
+  font-size: 0.95rem;
+}
+
+.catalog-section {
+  scroll-margin-top: 70px;
 }

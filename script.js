@@ -10,6 +10,8 @@ const saleNextButton = document.querySelector("#sale-next");
 const salePagination = document.querySelector("#sale-pagination");
 const catalogCards = document.querySelector("#catalog-cards");
 const searchInput = document.querySelector("#catalog-search");
+const searchStatus = document.querySelector("#search-status");
+const catalogSection = document.querySelector("#catalog-section");
 const gameDetailsDialog = document.querySelector("#game-details-dialog");
 const gameDetailsImage = document.querySelector("#game-details-image");
 const gameDetailsTitle = document.querySelector("#game-details-title");
@@ -183,17 +185,65 @@ function createCatalogCard(game) {
   return card;
 }
 
-function renderCatalog() {
-  const searchTerm = searchInput.value.trim().toLocaleLowerCase();
-  const matchingGames = games.filter((game) =>
-    game.title.toLocaleLowerCase().includes(searchTerm)
+function normalizeSearch(value) {
+  return String(value || "")
+    .toLocaleLowerCase("uk")
+    .replace(/[’ʼ`']/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function gameSearchScore(game, tokens) {
+  const title = normalizeSearch(game.title);
+  const other = normalizeSearch(
+    `${game.developer} ${game.publisher} ${game.description}`
   );
+  let score = 0;
+  for (const token of tokens) {
+    if (title.startsWith(token)) {
+      score += 3;
+    } else if (title.includes(token)) {
+      score += 2;
+    } else if (other.includes(token)) {
+      score += 1;
+    } else {
+      return 0;
+    }
+  }
+  return score;
+}
+
+function renderCatalog() {
+  const tokens = normalizeSearch(searchInput.value).split(" ").filter(Boolean);
+  let matchingGames = games;
+  if (tokens.length > 0) {
+    matchingGames = games
+      .map((game) => ({ game, score: gameSearchScore(game, tokens) }))
+      .filter((entry) => entry.score > 0)
+      .sort((first, second) => second.score - first.score)
+      .map((entry) => entry.game);
+  }
   catalogCards.replaceChildren(...matchingGames.map(createCatalogCard));
+  if (searchStatus) {
+    searchStatus.textContent =
+      tokens.length > 0 ? `Знайдено ігор: ${matchingGames.length}` : "";
+  }
   if (matchingGames.length === 0) {
     const empty = document.createElement("p");
     empty.className = "catalog-empty";
     empty.textContent = "За цим запитом ігор не знайдено.";
     catalogCards.append(empty);
+  }
+}
+
+function runSearch(scroll) {
+  renderCatalog();
+  if (!scroll || !catalogSection) {
+    return;
+  }
+  const top = catalogSection.getBoundingClientRect().top;
+  if (top > window.innerHeight * 0.6 || top < 0) {
+    catalogSection.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 
@@ -225,7 +275,9 @@ function openGameDetails(game) {
   appendRequirementList(minimumRequirements, game.minimum);
   appendRequirementList(recommendedRequirements, game.recommended);
   gameDetailsDialog.scrollTop = 0;
-  gameDetailsDialog.showModal();
+  if (!gameDetailsDialog.open) {
+    gameDetailsDialog.showModal();
+  }
 }
 
 function updateGameActionButton() {
@@ -347,12 +399,17 @@ saleNextButton.addEventListener("click", () => {
   renderSalePage();
 });
 
-searchInput.addEventListener("input", renderCatalog);
-document.querySelector("#catalog-search-button").addEventListener("click", renderCatalog);
+searchInput.addEventListener("input", () => runSearch(true));
+document
+  .querySelector("#catalog-search-button")
+  .addEventListener("click", () => runSearch(true));
 searchInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
-    renderCatalog();
+    runSearch(true);
+  } else if (event.key === "Escape" && searchInput.value) {
+    searchInput.value = "";
+    runSearch(false);
   }
 });
 
@@ -418,7 +475,9 @@ cartButton.addEventListener("click", async () => {
   try {
     await loadCart();
     cartMessage.textContent = "";
-    cartDialog.showModal();
+    if (!cartDialog.open) {
+      cartDialog.showModal();
+    }
   } catch (error) {
     cartMessage.textContent = error.message;
   }

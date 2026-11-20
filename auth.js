@@ -19,14 +19,10 @@ function clearLegacyAuthStorage() {
 }
 
 function applyUser(user) {
-  window.SteamSiteUser = user;
   document.body.classList.toggle("is-logged-in", Boolean(user));
   if (typeof window.setLoggedIn === "function") {
     window.setLoggedIn(Boolean(user));
   }
-  window.dispatchEvent(
-    new CustomEvent("steamsite-auth-change", { detail: { user } })
-  );
 }
 
 window.SteamSiteAuthReady = (async () => {

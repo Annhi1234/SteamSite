@@ -1,4 +1,6 @@
 node_modules/
 .app-secret
+.env
+.env.*
 data/store.json
 data/store.json.*.tmp
