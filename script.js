@@ -11,7 +11,6 @@ const salePagination = document.querySelector("#sale-pagination");
 const catalogCards = document.querySelector("#catalog-cards");
 const searchInput = document.querySelector("#catalog-search");
 const searchStatus = document.querySelector("#search-status");
-const catalogSection = document.querySelector("#catalog-section");
 const gameDetailsDialog = document.querySelector("#game-details-dialog");
 const gameDetailsImage = document.querySelector("#game-details-image");
 const gameDetailsTitle = document.querySelector("#game-details-title");
@@ -223,6 +222,7 @@ function renderCatalog() {
       .sort((first, second) => second.score - first.score)
       .map((entry) => entry.game);
   }
+  document.body.classList.toggle("is-searching", tokens.length > 0);
   catalogCards.replaceChildren(...matchingGames.map(createCatalogCard));
   if (searchStatus) {
     searchStatus.textContent =
@@ -238,12 +238,8 @@ function renderCatalog() {
 
 function runSearch(scroll) {
   renderCatalog();
-  if (!scroll || !catalogSection) {
-    return;
-  }
-  const top = catalogSection.getBoundingClientRect().top;
-  if (top > window.innerHeight * 0.6 || top < 0) {
-    catalogSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll && searchInput.value.trim()) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 }
 

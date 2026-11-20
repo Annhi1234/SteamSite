@@ -1405,11 +1405,25 @@ body.is-logged-in .loged {
 }
 .search-status {
   min-height: 1.4em;
-  margin: 0 0 8px 10px;
+  margin: 0 0 8px;
   color: #c7d5e0;
   font-size: 0.95rem;
+  text-align: center;
 }
 
-.catalog-section {
-  scroll-margin-top: 70px;
+.is-searching .container-reccomend,
+.is-searching .sale-section {
+  display: none;
+}
+
+.is-searching .cards {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 270px));
+  justify-content: center;
+  align-items: start;
+  min-height: 200px;
+}
+
+.is-searching .catalog-empty {
+  grid-column: 1 / -1;
+  padding: 40px 0;
 }
